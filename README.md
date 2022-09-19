@@ -61,8 +61,8 @@ Congratulations, you are now ready to start!
 To test the installation, you can run some hello-world programs:
 ```
 (base)$ conda activate ARO_Practical
-(RSS_Practical)$ python3 hello_world.py
-(RSS_Practical)$ python3 hello_Nextage.py
+(ARO_Practical)$ python3 hello_world.py
+(ARO_Practical)$ python3 hello_Nextage.py
 ```
 
 
