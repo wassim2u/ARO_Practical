@@ -1,4 +1,4 @@
-# RSS Practical 2021
+# ARO Practical 2022
 
 ![Git](https://github.com/favicon.ico)
 
