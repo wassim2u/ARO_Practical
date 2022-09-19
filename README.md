@@ -78,4 +78,3 @@ To test the installation, you can run some hello-world programs:
 
 ## Trouble shooting
 Please see [Trouble shooting](https://github.com/AVRO22/ARO_Practical_2022/blob/main/trouble_shooting.md)
-# ARO_Practical_2022
