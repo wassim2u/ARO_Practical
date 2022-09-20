@@ -5,7 +5,7 @@
 Hello and welcome to the ARO Practical 2022! This repository contains the code from which you will develop your own solutions to each of the tasks described in the Practical Guidebook. To get started, clone the repository to your local machine:
 
 ```
-$ git clone https://github.com/AVRO22/ARO_Practical_2022.git
+$ git clone https://github.com/avro22/ARO_Practical_2022.git
 $ cd ./ARO_Practical_2022
 ```
 
