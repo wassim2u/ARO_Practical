@@ -18,12 +18,12 @@ NOTE: This lab is only guaranteed to work with Ubuntu 20.04
 From here, you should be under ./ARO_Practical_2022 directory.
 
 ### Option 1: Setup with conda
-Make sure you have either miniconda or anaconda installed. If not, you can follow the instructions on the [website](https://docs.conda.io/projects/conda/en/latest/user-guide/install/) to get conda. To make sure your conda is up-to-date, run:
+Make sure you have either miniconda or anaconda installed. If not, you can follow the instructions on the [website](https://docs.conda.io/projects/conda/en/latest/user-guide/install/) to get conda. On DICE, conda is already installed and up-to-date, so you can ignore the following command. To make sure your conda is up-to-date, run:
 ```
 $ conda update conda
 ```
 
-Conda automatically installs everything you need and create an isolated envirnoment. Run following code in your terminal to create a conda environment called RSS_Practical. 
+Conda automatically installs everything you need and create an isolated envirnoment. Run following code in your terminal to create a conda environment called ARO_Practical. 
 ```
 $ conda env create --file environment.yml
 $ # If you wish to name it differently, change <YOURENVNAME> with following command: 
