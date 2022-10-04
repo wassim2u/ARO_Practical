@@ -1,3 +1,4 @@
+from concurrent.futures import thread
 from scipy.spatial.transform import Rotation as npRotation
 from scipy.special import comb
 from scipy.interpolate import CubicSpline
@@ -25,53 +26,53 @@ class Simulation(Simulation_base):
         else:
             self.refVector = np.array([1,0,0])
 
-    ########## Task 1: Kinematics ##########
-    # Task 1.1 Forward Kinematics
-    jointRotationAxis = {
-        'base_to_dummy': np.zeros(3),  # Virtual joint
-        'base_to_waist': np.zeros(3),  # Fixed joint
-        # TODO: modify from here
-        'CHEST_JOINT0': np.array([0, 0, 1]),
-        'HEAD_JOINT0': np.array([0, 0, 1]),
-        'HEAD_JOINT1': np.array([0, 1, 0]),
-        'LARM_JOINT0': np.array([0, 0, 1]),
-        'LARM_JOINT1': np.array([0, 1, 0]),
-        'LARM_JOINT2': np.array([0, 1, 0]),
-        'LARM_JOINT3': np.array([1, 0, 0]),
-        'LARM_JOINT4': np.array([0, 1, 0]),
-        'LARM_JOINT5': np.array([0, 0, 1]),
-        'RARM_JOINT0': np.array([0, 0, 1]),
-        'RARM_JOINT1': np.array([0, 1, 0]),
-        'RARM_JOINT2': np.array([0, 1, 0]),
-        'RARM_JOINT3': np.array([1, 0, 0]),
-        'RARM_JOINT4': np.array([0, 1, 0]),
-        'RARM_JOINT5': np.array([0, 0, 1]),
-        'RHAND'      : np.array([0, 0, 0]),
-        'LHAND'      : np.array([0, 0, 0])
-    }
+        ########## Task 1: Kinematics ##########
+        # Task 1.1 Forward Kinematics
+        self.jointRotationAxis = {
+            'base_to_dummy': np.zeros(3),  # Virtual joint
+            'base_to_waist': np.zeros(3),  # Fixed joint
+            # TODO: modify from here
+            'CHEST_JOINT0': np.array([0, 0, 1]),
+            'HEAD_JOINT0': np.array([0, 0, 1]),
+            'HEAD_JOINT1': np.array([0, 1, 0]),
+            'LARM_JOINT0': np.array([0, 0, 1]),
+            'LARM_JOINT1': np.array([0, 1, 0]),
+            'LARM_JOINT2': np.array([0, 1, 0]),
+            'LARM_JOINT3': np.array([1, 0, 0]),
+            'LARM_JOINT4': np.array([0, 1, 0]),
+            'LARM_JOINT5': np.array([0, 0, 1]),
+            'RARM_JOINT0': np.array([0, 0, 1]),
+            'RARM_JOINT1': np.array([0, 1, 0]),
+            'RARM_JOINT2': np.array([0, 1, 0]),
+            'RARM_JOINT3': np.array([1, 0, 0]),
+            'RARM_JOINT4': np.array([0, 1, 0]),
+            'RARM_JOINT5': np.array([0, 0, 1]),
+            'RHAND'      : np.array([0, 0, 0]),
+            'LHAND'      : np.array([0, 0, 0])
+        }
 
-    frameTranslationFromParent = {
-        'base_to_dummy': np.zeros(3),  # Virtual joint
-        'base_to_waist': np.zeros(3),  # Fixed joint
-        # TODO: modify from here
-        'CHEST_JOINT0': np.array([0, 0, 0.267]),
-        'HEAD_JOINT0': np.array([0, 0, 0.302]),
-        'HEAD_JOINT1': np.array([0, 0, 0.066]),
-        'LARM_JOINT0': np.array([0.04, 0.135, 0.1015]),
-        'LARM_JOINT1': np.array([0, 0, 0.066]),
-        'LARM_JOINT2': np.array([0, 0.095, -0.25]),
-        'LARM_JOINT3': np.array([0.1805, 0, -0.03]),
-        'LARM_JOINT4': np.array([0.1495, 0, 0]),
-        'LARM_JOINT5': np.array([0, 0, -0.1335]),
-        'RARM_JOINT0': np.array([0.04, -0.135, 0.1015]),
-        'RARM_JOINT1': np.array([0, 0, 0.066]),
-        'RARM_JOINT2': np.array([0, -0.095, -0.25]),
-        'RARM_JOINT3': np.array([0.1805, 0, -0.03]),
-        'RARM_JOINT4': np.array([0.1495, 0, 0]),
-        'RARM_JOINT5': np.array([0, 0, -0.1335]),
-        'RHAND'      : np.array([0, 0, 0]), # optional
-        'LHAND'      : np.array([0, 0, 0]) # optional
-    }
+        self.frameTranslationFromParent = {
+            'base_to_dummy': np.zeros(3),  # Virtual joint
+            'base_to_waist': np.zeros(3),  # Fixed joint
+            # TODO: modify from here
+            'CHEST_JOINT0': np.array([0, 0, 0.267]),
+            'HEAD_JOINT0': np.array([0, 0, 0.302]),
+            'HEAD_JOINT1': np.array([0, 0, 0.066]),
+            'LARM_JOINT0': np.array([0.04, 0.135, 0.1015]),
+            'LARM_JOINT1': np.array([0, 0, 0.066]),
+            'LARM_JOINT2': np.array([0, 0.095, -0.25]),
+            'LARM_JOINT3': np.array([0.1805, 0, -0.03]),
+            'LARM_JOINT4': np.array([0.1495, 0, 0]),
+            'LARM_JOINT5': np.array([0, 0, -0.1335]),
+            'RARM_JOINT0': np.array([0.04, -0.135, 0.1015]),
+            'RARM_JOINT1': np.array([0, 0, 0.066]),
+            'RARM_JOINT2': np.array([0, -0.095, -0.25]),
+            'RARM_JOINT3': np.array([0.1805, 0, -0.03]),
+            'RARM_JOINT4': np.array([0.1495, 0, 0]),
+            'RARM_JOINT5': np.array([0, 0, -0.1335]),
+            'RHAND'      : np.array([0, 0, 0]), # optional
+            'LHAND'      : np.array([0, 0, 0]) # optional
+        }
 
     def getJointRotationalMatrix(self, jointName=None, theta=None):
         """
@@ -84,6 +85,18 @@ class Simulation(Simulation_base):
         # TODO modify from here
         # Hint: the output should be a 3x3 rotational matrix as a numpy array
         #return np.matrix()
+        R_x = np.array([[1, 0,              0             ]
+                        [0, np.cos(theta),  -np.sin(theta)]
+                        [0, np.sin(theta),  np.cos(theta) ]])
+
+        R_y = np.array([[np.cos(theta),  0, np.sin(theta)]
+                        [0,              1, 0            ]
+                        [-np.sin(theta), 0, np.cos(theta)]])
+
+        R_x = np.array([[np.cos(theta), -np.sin(theta), 0]
+                        [np.sin(theta), np.cos(theta),  0]
+                        [0,             0,              1]])
+
         pass
 
     def getTransformationMatrices(self):
@@ -94,6 +107,7 @@ class Simulation(Simulation_base):
         # TODO modify from here
         # Hint: the output should be a dictionary with joint names as keys and
         # their corresponding homogeneous transformation matrices as values.
+        for keys in self.rota
         return transformationMatrices
 
     def getJointLocationAndOrientation(self, jointName):
