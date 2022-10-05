@@ -49,8 +49,8 @@ class Simulation(Simulation_base):
             'RARM_JOINT3': 'RARM_JOINT4',
             'RARM_JOINT4': 'RARM_JOINT5',
             'RARM_JOINT5': 'RARM',
-            'RHAND'      : None, # optional
-            'LHAND'      : None # optional
+            #'RHAND'      : None, # optional
+            #'LHAND'      : None # optional
         }
 
         ########## Task 1: Kinematics ##########
@@ -74,8 +74,8 @@ class Simulation(Simulation_base):
             'RARM_JOINT3': np.array([1, 0, 0]),
             'RARM_JOINT4': np.array([0, 1, 0]),
             'RARM_JOINT5': np.array([0, 0, 1]),
-            'RHAND'      : np.array([0, 0, 0]),
-            'LHAND'      : np.array([0, 0, 0])
+            #'RHAND'      : np.array([0, 0, 0]),
+            #'LHAND'      : np.array([0, 0, 0])
         }
 
         self.frameTranslationFromParent = {
@@ -97,8 +97,8 @@ class Simulation(Simulation_base):
             'RARM_JOINT3': np.array([0.1805, 0, -0.03]),
             'RARM_JOINT4': np.array([0.1495, 0, 0]),
             'RARM_JOINT5': np.array([0, 0, -0.1335]),
-            'RHAND'      : np.array([0, 0, 0]), # optional
-            'LHAND'      : np.array([0, 0, 0]) # optional
+            #'RHAND'      : np.array([0, 0, 0]), # optional
+            #'LHAND'      : np.array([0, 0, 0]) # optional
         }
     def getNextJoint(self, jointName, finalJoint):
         if "CHEST_JOINT0" in jointName and "R" in finalJoint:
@@ -125,20 +125,20 @@ class Simulation(Simulation_base):
         # TODO modify from here
         # Hint: the output should be a 3x3 rotational matrix as a numpy array
         #return np.matrix()
-        R_x = np.array([[1, 0,              0             ]
-                        [0, np.cos(theta),  -np.sin(theta)]
+        R_x = np.array([[1, 0,              0             ],
+                        [0, np.cos(theta),  -np.sin(theta)],
                         [0, np.sin(theta),  np.cos(theta) ]])
 
-        R_y = np.array([[np.cos(theta),  0, np.sin(theta)]
-                        [0,              1, 0            ]
+        R_y = np.array([[np.cos(theta),  0, np.sin(theta)],
+                        [0,              1, 0            ],
                         [-np.sin(theta), 0, np.cos(theta)]])
 
-        R_z = np.array([[np.cos(theta), -np.sin(theta), 0]
-                        [np.sin(theta), np.cos(theta),  0]
+        R_z = np.array([[np.cos(theta), -np.sin(theta), 0],
+                        [np.sin(theta), np.cos(theta),  0],
                         [0,             0,              1]])
         
 
-        rotationAxis = self.jointRotationAxis.get(jointName)
+        rotationAxis = self.jointRotationAxis[jointName]
         R = np.ones((3,3))
 
         if(rotationAxis[2]):
@@ -147,7 +147,6 @@ class Simulation(Simulation_base):
             R = R * R_y
         if(rotationAxis[0]):
             R = R * R_x
-        
         return R
 
     def getTransformationMatrices(self):
@@ -159,10 +158,11 @@ class Simulation(Simulation_base):
         # Hint: the output should be a dictionary with joint names as keys and
         # their corresponding homogeneous transformation matrices as values.
         for key, val in self.frameTranslationFromParent.items():
-            theta = Simulation.getJointPos(key)
-            R = self.getRotationMatrix(key, theta)
-            R = np.vstack((R, np.array([0,0,0])))
-            R = np.hstack((R, np.append(val, 1)))
+            theta = self.getJointPos(key)
+            R = self.getJointRotationalMatrix(key, theta)
+            
+            R = np.vstack((R, np.array([[0,0,0]])))
+            R = np.hstack((R, np.transpose(np.array([np.append(val, 1)]))))
             transformationMatrices[key] = R
         return transformationMatrices
 
@@ -180,8 +180,8 @@ class Simulation(Simulation_base):
             htm = htm * htms[nextJoint]
             nextJoint = self.getNextJoint(curr_joint, jointName)
         
-        pos = htm[0:2,3]
-        rot = htm[0:2, 0:2]
+        pos = htm[0:2,  3]
+        rot = htm[0:2,  0:2]
 
         return pos, rot
         # Remember to multiply the transformation matrices following the kinematic chain for each arm.
