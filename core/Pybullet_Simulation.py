@@ -1,4 +1,5 @@
 from concurrent.futures import thread
+from multiprocessing.sharedctypes import Value
 from scipy.spatial.transform import Rotation as npRotation
 from scipy.special import comb
 from scipy.interpolate import CubicSpline
@@ -25,6 +26,32 @@ class Simulation(Simulation_base):
             self.refVector = np.array(refVect)
         else:
             self.refVector = np.array([1,0,0])
+
+
+        self.jointMap = {
+            'base_to_dummy': 'base_to_waist',  # Virtual joint
+            'base_to_waist': 'CHEST_JOINT0',  # Fixed joint
+            # TODO: modify from here
+            'CHEST_JOINT0_HEAD': 'HEAD_JOINT0',
+            'CHEST_JOINT0_LEFT': 'LARM_JOINT0',
+            'CHEST_JOINT0_RIGHT': 'RARM_JOINT0',
+            'HEAD_JOINT0': 'HEAD_JOINT1',
+            'HEAD_JOINT1': None,
+            'LARM_JOINT0': 'LARM_JOINT1',
+            'LARM_JOINT1': 'LARM_JOINT2',
+            'LARM_JOINT2': 'LARM_JOINT3',
+            'LARM_JOINT3': 'LARM_JOINT4',
+            'LARM_JOINT4': 'LARM_JOINT5',
+            'LARM_JOINT5': 'LARM',
+            'RARM_JOINT0': 'RARM_JOINT1',
+            'RARM_JOINT1': 'RARM_JOINT2',
+            'RARM_JOINT2': 'RARM_JOINT3',
+            'RARM_JOINT3': 'RARM_JOINT4',
+            'RARM_JOINT4': 'RARM_JOINT5',
+            'RARM_JOINT5': 'RARM',
+            'RHAND'      : None, # optional
+            'LHAND'      : None # optional
+        }
 
         ########## Task 1: Kinematics ##########
         # Task 1.1 Forward Kinematics
@@ -73,6 +100,19 @@ class Simulation(Simulation_base):
             'RHAND'      : np.array([0, 0, 0]), # optional
             'LHAND'      : np.array([0, 0, 0]) # optional
         }
+    def getNextJoint(self, jointName, finalJoint):
+        if "CHEST_JOINT0" in jointName and "R" in finalJoint:
+            return self.jointMap["CHEST_JOINT0_RIGHT"]
+        if "CHEST_JOINT0" in jointName and "L" in finalJoint:
+            return self.jointMap["CHEST_JOINT0_LEFT"]
+        if "CHEST_JOINT0" in jointName and "HEAD" in finalJoint:
+            return self.jointMap["CHEST_JOINT0_LEFT"]
+        else:
+            nextJoint =  self.jointMap[jointName]
+            if nextJoint is None:
+                return jointName
+            else:
+                return nextJoint
 
     def getJointRotationalMatrix(self, jointName=None, theta=None):
         """
@@ -93,11 +133,22 @@ class Simulation(Simulation_base):
                         [0,              1, 0            ]
                         [-np.sin(theta), 0, np.cos(theta)]])
 
-        R_x = np.array([[np.cos(theta), -np.sin(theta), 0]
+        R_z = np.array([[np.cos(theta), -np.sin(theta), 0]
                         [np.sin(theta), np.cos(theta),  0]
                         [0,             0,              1]])
+        
 
-        pass
+        rotationAxis = self.jointRotationAxis.get(jointName)
+        R = np.ones((3,3))
+
+        if(rotationAxis[2]):
+            R = R * R_z
+        if(rotationAxis[1]):
+            R = R * R_y
+        if(rotationAxis[0]):
+            R = R * R_x
+        
+        return R
 
     def getTransformationMatrices(self):
         """
@@ -107,7 +158,12 @@ class Simulation(Simulation_base):
         # TODO modify from here
         # Hint: the output should be a dictionary with joint names as keys and
         # their corresponding homogeneous transformation matrices as values.
-        for keys in self.rota
+        for key, val in self.frameTranslationFromParent.items():
+            theta = Simulation.getJointPos(key)
+            R = self.getRotationMatrix(key, theta)
+            R = np.vstack((R, np.array([0,0,0])))
+            R = np.hstack((R, np.append(val, 1)))
+            transformationMatrices[key] = R
         return transformationMatrices
 
     def getJointLocationAndOrientation(self, jointName):
@@ -115,12 +171,25 @@ class Simulation(Simulation_base):
             Returns the position and rotation matrix of a given joint using Forward Kinematics
             according to the topology of the Nextage robot.
         """
+        htms = self.getTransformationMatrices()
+        # current joint and its transformation matrix
+        curr_joint = "base_to_dummy"
+        htm = htms[curr_joint]
+        nextJoint = self.getNextJoint(curr_joint, jointName)
+        while nextJoint != jointName:
+            htm = htm * htms[nextJoint]
+            nextJoint = self.getNextJoint(curr_joint, jointName)
+        
+        pos = htm[0:2,3]
+        rot = htm[0:2, 0:2]
+
+        return pos, rot
         # Remember to multiply the transformation matrices following the kinematic chain for each arm.
         #TODO modify from here
         # Hint: return two numpy arrays, a 3x1 array for the position vector,
         # and a 3x3 array for the rotation matrix
         #return pos, rotmat
-        pass
+
 
     def getJointPosition(self, jointName):
         """Get the position of a joint in the world frame, leave this unchanged please."""
