@@ -100,6 +100,27 @@ class Simulation(Simulation_base):
             #'RHAND'      : np.array([0, 0, 0]), # optional
             #'LHAND'      : np.array([0, 0, 0]) # optional
         }
+
+    def measureJointAngles(self):
+        jointPos = {}
+        for key in self.jointRotationAxis.keys():
+            jointPos[key] = self.getJointPos(key)
+        return jointPos
+
+    def calculateTransformationMatrices(self, jointPos):
+        transformationMatrices = {}
+        for key, val in self.frameTranslationFromParent.items():
+            theta = jointPos[key]
+            R = self.getJointRotationalMatrix(key, theta)
+            
+            R = np.vstack((R, np.array([[0,0,0]])))
+            R = np.hstack((R, np.transpose(np.array([np.append(val, 1)]))))
+            transformationMatrices[key] = R
+
+
+        return transformationMatrices
+        
+        
     def getNextJoint(self, jointName, finalJoint):
         if "CHEST_JOINT0" in jointName and "LARM" in finalJoint:
             return self.jointMap["CHEST_JOINT0_LEFT"]
@@ -110,10 +131,7 @@ class Simulation(Simulation_base):
         elif "CHEST_JOINT0" == finalJoint:
             return finalJoint          
         else:
-            print("Joint name")
-            print(jointName)
-            print("Final joint")
-            print(finalJoint)
+           
             nextJoint =  self.jointMap[jointName]
             if nextJoint is None:
                 return jointName
@@ -145,14 +163,18 @@ class Simulation(Simulation_base):
         
 
         rotationAxis = self.jointRotationAxis[jointName]
-        R = np.ones((3,3))
-
+        R = np.identity(3)
+        #print(rotationAxis)
+        #if not np.any(rotationAxis):
+        #     return np.zeros((3,3))
         if(rotationAxis[2]):
-            R = R * R_z
-        if(rotationAxis[1]):
-            R = R * R_y
-        if(rotationAxis[0]):
-            R = R * R_x
+            R = R @ R_z
+        elif(rotationAxis[1]):
+            R = R @ R_y
+        elif(rotationAxis[0]):
+            R = R @ R_x
+        # else:
+        #     R = np.zeros((3,3))
         return R
 
     def getTransformationMatrices(self):
@@ -169,36 +191,57 @@ class Simulation(Simulation_base):
             
             R = np.vstack((R, np.array([[0,0,0]])))
             R = np.hstack((R, np.transpose(np.array([np.append(val, 1)]))))
+
+            
             transformationMatrices[key] = R
         return transformationMatrices
     
     
+    def forwardKinematics(self, jointName, jointPos):
+        """
+            Returns the position and rotation matrix of a given joint using Forward Kinematics
+            according to the topology of the Nextage robot.
+        """
+        htms = self.calculateTransformationMatrices(jointPos)
+        
+        fkMatrices = []
+        jointNames = []
+        # current joint and its transformation matrix
+        curr_joint = "base_to_dummy"
+        htm = htms[curr_joint]
+        fkMatrices.append(htm)
+
+        jointNames.append(curr_joint)
+        nextJoint = self.getNextJoint(curr_joint, jointName)
+
+        while nextJoint != jointName:
+            htm =  htm @htms[nextJoint] 
+            fkMatrices.append(htm)
+
+            nextJoint = self.getNextJoint(nextJoint, jointName)
+            jointNames.append(nextJoint)
+
+        return fkMatrices, jointNames
 
     def getJointLocationAndOrientation(self, jointName):
         """
             Returns the position and rotation matrix of a given joint using Forward Kinematics
             according to the topology of the Nextage robot.
         """
-        htms = self.getTransformationMatrices()
-        # current joint and its transformation matrix
-        curr_joint = "base_to_dummy"
-        htm = htms[curr_joint]
-        nextJoint = self.getNextJoint(curr_joint, jointName)
-        while nextJoint != jointName:
-            htm = htm * htms[nextJoint]
-            nextJoint = self.getNextJoint(nextJoint, jointName)
+
+        jointMatrices, _ = self.forwardKinematics(jointName, self.measureJointAngles())
+        jointMatrix = jointMatrices[-1]
+        p_i, a_i = self.extractPositionAndAngle(jointMatrix)
+
+        return p_i, a_i
+    
         
-
-        pos = htm[0:3,  3]
-        rot = htm[0:3,  0:3]
-
-        return pos, rot
         # Remember to multiply the transformation matrices following the kinematic chain for each arm.
         #TODO modify from here
         # Hint: return two numpy arrays, a 3x1 array for the position vector,
         # and a 3x3 array for the rotation matrix
-        #return pos, rotmat
-
+        # return pos, rotmat
+    
 
     def getJointPosition(self, jointName):
         """Get the position of a joint in the world frame, leave this unchanged please."""
@@ -215,7 +258,7 @@ class Simulation(Simulation_base):
         """Get the orientation of a joint in the world frame, leave this unchanged please."""
         return np.array(self.getJointLocationAndOrientation(jointName)[1] @ self.jointRotationAxis[jointName]).squeeze()
 
-    def jacobianMatrix(self, endEffector):
+    def jacobianMatrix(self, endEffector, fkMatrices):
         """Calculate the Jacobian Matrix for the Nextage Robot."""
         # TODO modify from here
         # You can implement the cross product yourself or use calculateJacobian().
@@ -225,35 +268,47 @@ class Simulation(Simulation_base):
         # your kinematic chain.
         #return np.array()
         
-        print("End effector " + str(endEffector) + "\n")
-        print(self.jointRotationAxis[endEffector])
-        print(self.getJointLocationAndOrientation(endEffector))
+        #print("End effector " + str(endEffector) + "\n")
+        #print(self.jointRotationAxis[endEffector])
+        #print(self.getJointLocationAndOrientation(endEffector))
         #Retrieve the necessary values from end effector 
-        p_eff = self.getJointPosition(endEffector)
-        a_eff = self.getJointAxis(endEffector)
         
-   
+        # p_eff = self.getJointPosition(endEffector)
+        # a_eff = self.getJointAxis(endEffector)
+        p_eff, a_eff = self.extractPositionAndAngle(fkMatrices[-1])
+        assert(self.getJointPosition(endEffector), p_eff)
+        assert(self.getJointAxis(endEffector), a_eff)
         #TODO: Calculate the transformation matrix once. There may be a better way to go through the homogenous matrix keys
-        homogenous_matrix_dict = self.getTransformationMatrices()
-        print(homogenous_matrix_dict.keys())
         #Initialise the matrix to be filled
         jacobian = []
-        for joint_i, joint_matrix in homogenous_matrix_dict.items():
-            #Ensure we dont compute the same end effector. 
-            if joint_i != endEffector and (joint_i != "base_to_dummy" or joint_i!="LARM" or joint_i!="RARM"):
-                print(joint_i)
-                a_i = joint_matrix[:3,:3][1] 
-                print(a_i)
-                p_i = joint_matrix[:3,3]
-                print(p_i)
-                jacobian_position = np.cross(a_i, p_eff - p_i)
-                jacobian_vector= np.cross(a_i, a_eff) 
-                #Combine the results together
-                jacobian.append(np.hstack([jacobian_position, jacobian_vector]))
-        
-        return np.array(jacobian)
         
 
+        for jointMatrix in fkMatrices:
+            #Ensure we dont compute the same end effector. 
+            
+            p_i, a_i = self.extractPositionAndAngle(jointMatrix)
+
+            
+            jacobian_position = np.cross(a_i, p_eff - p_i)
+            # jacobian_vector= np.cross(a_i, a_eff) 
+            #Combine the results together
+            # jacobian.append(np.hstack([jacobian_position, jacobian_vector]))
+            jacobian.append(jacobian_position)
+
+        
+        return np.array(jacobian).T
+    
+    ################# Helper Functions ################
+    
+    def extractPositionAndAngle(self, jointMatrix):
+        a_i = jointMatrix[:3,:3]@(np.array([1,0,0]).T)
+        #print("Rotation matrix")
+        #print(a_i)
+        p_i = jointMatrix[:3,3]
+
+        return p_i, a_i
+        
+        
     # Task 1.2 Inverse Kinematics
 
     def inverseKinematics(self, endEffector, targetPosition, orientation, interpolationSteps, maxIterPerStep, threshold):
@@ -277,37 +332,66 @@ class Simulation(Simulation_base):
         #TODO: Work with orientation as well
         
         # set the initial robot configuration
-        dTheta = initTheta
+        # dTheta = initTheta
 
-        q = [self.getJointPosition(jointName) for jointName in self.jointMap.keys() if jointName != endEffector]
+        jointAngles = self.measureJointAngles()
+
+        #FK
+        fkMatrices, jointNames = self.forwardKinematics(endEffector, jointAngles)
+        
+        print(fkMatrices)
+        efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+        
+        #Joint angles
+        q = np.array([ jointAngles[val] for val in jointNames] ) 
+ 
         traj = [q]
-        eff_position = self.getJointPosition(endEffector)
-        step_positions = np.linspace(eff_position,targetPosition,num=interpolationSteps)
+        
+        stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)
         for i in range(interpolationSteps):
-            curr_goal = step_positions[i, :]
+            currGoal = stepPositions[i, :]
+            
+            #print(currGoal)
             for iter in range(maxIterPerStep):
-                
-                deltaStep = curr_goal - eff_position
+                deltaStep = currGoal - efPosition
                 dy= np.array([deltaStep[0], deltaStep[1], deltaStep[2]])
-                jacobian = self.jacobianMatrix(endEffector)
+   
+                jacobian = self.jacobianMatrix(endEffector, fkMatrices)
+
                 dq = np.linalg.pinv(jacobian)@dy
-                dTheta = dTheta+ dq 
+                #print(dq)
+
+                q += dq
                 
-                q = q+ dTheta
+                #print(dq)
                 traj.append(q)
+  
+
                 
+                for i in range(len(dq)):
+                    jointAngles[jointNames[i]] = q[i]
+
+                
+                q = np.array([ jointAngles[val] for val in jointNames] ) 
+                
+                #Calculate the FK again with the updated joint angles
+                fkMatrices, jointNames_2 = self.forwardKinematics(endEffector, jointAngles)
+                assert(jointNames== jointNames_2)
+                #Calculate the new end effector position
+                efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+        
                 
                 #TODO: calculate the new end effector 
-
-                if abs(eff_position - targetPosition) < threshold:
+                #Missing the FK calculate and updating end effector 
+                if np.linalg.norm(efPosition - currGoal) < threshold:
                     break
                 
                 
-                
+                    
         
             
         #TODO: You should directly (re)set the joint positions to be the desired values using a method such as Simulation.p.resetJointState() or else
-        return np.array(traj) 
+        return np.array(traj), jointNames
 
     def move_without_PD(self, endEffector, targetPosition, speed=0.01, orientation=None,
         threshold=1e-3, maxIter=3000, debug=False, verbose=False):
@@ -319,20 +403,30 @@ class Simulation(Simulation_base):
         """
         #TODO add your code here
         # iterate through joints and update joint states based on IK solver
-        self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
-                               interpolationSteps=100, #TODO: whats the  interpolation step here?
+        trajs, names = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
+                               orientation=orientation,
+                               interpolationSteps=5, #TODO: whats the  interpolation step here?
                                maxIterPerStep=maxIter,
                                threshold=threshold
                                )
-        #return pltTime, pltDistance
-        pass
 
-    def tick_without_PD(self):
+
+        #return pltTime, pltDistance
+        for traj in trajs:
+            self.tick_without_PD(names, traj)
+            
+#  self.p.resetJointState(
+#                 self.robot, self.jointIds[jointName], jointPoses[jointName])
+
+        return
+
+    def tick_without_PD(self, names, traj):
         """Ticks one step of simulation without PD control. """
         # TODO modify from here
         # Iterate through all joints and update joint states.
             # For each joint, you can use the shared variable self.jointTargetPos.
-
+        for i, name in enumerate(names):
+                self.p.resetJointState(self.robot, self.jointIds[name], traj[i])
         self.p.stepSimulation()
         self.drawDebugLines()
         time.sleep(self.dt)
