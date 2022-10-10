@@ -1,5 +1,6 @@
 from concurrent.futures import thread
 from multiprocessing.sharedctypes import Value
+from tkinter import S
 from scipy.spatial.transform import Rotation as npRotation
 from scipy.special import comb
 from scipy.interpolate import CubicSpline
@@ -149,32 +150,45 @@ class Simulation(Simulation_base):
         # TODO modify from here
         # Hint: the output should be a 3x3 rotational matrix as a numpy array
         #return np.matrix()
-        R_x = np.array([[1, 0,              0             ],
-                        [0, np.cos(theta),  -np.sin(theta)],
-                        [0, np.sin(theta),  np.cos(theta) ]])
+        rotationAxis = self.jointRotationAxis[jointName]
 
-        R_y = np.array([[np.cos(theta),  0, np.sin(theta)],
-                        [0,              1, 0            ],
-                        [-np.sin(theta), 0, np.cos(theta)]])
+        cos = np.cos(theta)
+        sin = np.sin(theta)
+        n_0 = rotationAxis[0]
+        n_1 = rotationAxis[1]
+        n_2 = rotationAxis[2]
 
-        R_z = np.array([[np.cos(theta), -np.sin(theta), 0],
-                        [np.sin(theta), np.cos(theta),  0],
-                        [0,             0,              1]])
+        R =     np.array([  [cos+(n_0**2)*(1-cos),       n_0*n_1*(1-cos)-n_2*sin,   n_0*n_2*(1-cos) + n_1*sin   ],
+                            [n_0*n_1*(1-cos) + n_2*sin,  cos+(n_1**2)*(1-cos),      n_1*n_2*(1-cos)-n_0*sin     ],
+                            [n_0*n_2*(1-cos)-n_1*sin,    n_1*n_2*(1-cos) + n_0*sin, cos+(n_2**2)*(1-cos)        ]])
+        
+        # R_x = np.array([[1, 0,              0             ],
+        #                 [0, np.cos(theta),  -np.sin(theta)],
+        #                 [0, np.sin(theta),  np.cos(theta) ]])
+
+        # R_y = np.array([[np.cos(theta),  0, np.sin(theta)],
+        #                 [0,              1, 0            ],
+        #                 [-np.sin(theta), 0, np.cos(theta)]])
+
+        # R_z = np.array([[np.cos(theta), -np.sin(theta), 0],
+        #                 [np.sin(theta), np.cos(theta),  0],
+        #                 [0,             0,              1]])
         
 
-        rotationAxis = self.jointRotationAxis[jointName]
-        R = np.identity(3)
-        #print(rotationAxis)
-        #if not np.any(rotationAxis):
-        #     return np.zeros((3,3))
-        if(rotationAxis[2]):
-            R = R @ R_z
-        elif(rotationAxis[1]):
-            R = R @ R_y
-        elif(rotationAxis[0]):
-            R = R @ R_x
+        # rotationAxis = self.jointRotationAxis[jointName]
+        # R = np.identity(3)
+        # #print(rotationAxis)
+        # #if not np.any(rotationAxis):
+        # #     return np.zeros((3,3))
+        # if(rotationAxis[2]):
+        #     R = R @ R_z
+        # elif(rotationAxis[1]):
+        #     R = R @ R_y
+        # elif(rotationAxis[0]):
+        #     R = R @ R_x
         # else:
         #     R = np.zeros((3,3))
+
         return R
 
     def getTransformationMatrices(self):
@@ -192,6 +206,7 @@ class Simulation(Simulation_base):
             R = np.vstack((R, np.array([[0,0,0]])))
             R = np.hstack((R, np.transpose(np.array([np.append(val, 1)]))))
 
+
             
             transformationMatrices[key] = R
         return transformationMatrices
@@ -204,6 +219,7 @@ class Simulation(Simulation_base):
         """
         htms = self.calculateTransformationMatrices(jointPos)
         
+
         fkMatrices = []
         jointNames = []
         # current joint and its transformation matrix
@@ -287,21 +303,25 @@ class Simulation(Simulation_base):
             #Ensure we dont compute the same end effector. 
             
             p_i, a_i = self.extractPositionAndAngle(jointMatrix)
-
+            a_i = a_i@(np.array([1,0,0]).T)
             
             jacobian_position = np.cross(a_i, p_eff - p_i)
-            # jacobian_vector= np.cross(a_i, a_eff) 
+            jacobian_vector= np.cross(a_i, a_eff) 
             #Combine the results together
-            # jacobian.append(np.hstack([jacobian_position, jacobian_vector]))
+            #print(p_eff - p_i)
+            #print(a_eff)
+            #print(jacobian_position)
+            #print(jacobian_vector)
+            #jacobian.append(np.hstack([jacobian_position, jacobian_vector]))
+            #print(jacobian_vector)
             jacobian.append(jacobian_position)
 
-        
         return np.array(jacobian).T
     
     ################# Helper Functions ################
     
     def extractPositionAndAngle(self, jointMatrix):
-        a_i = jointMatrix[:3,:3]@(np.array([1,0,0]).T)
+        a_i = jointMatrix[:3,:3]#@(np.array([1,0,0]).T)
         #print("Rotation matrix")
         #print(a_i)
         p_i = jointMatrix[:3,3]
@@ -339,7 +359,6 @@ class Simulation(Simulation_base):
         #FK
         fkMatrices, jointNames = self.forwardKinematics(endEffector, jointAngles)
         
-        print(fkMatrices)
         efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
         
         #Joint angles
@@ -349,24 +368,22 @@ class Simulation(Simulation_base):
         
         stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)
         for i in range(interpolationSteps):
-            currGoal = stepPositions[i, :]
+            currGoal = stepPositions[i]
             
-            #print(currGoal)
             for iter in range(maxIterPerStep):
-                deltaStep = currGoal - efPosition
-                dy= np.array([deltaStep[0], deltaStep[1], deltaStep[2]])
-   
+                dy = currGoal - efPosition   
+                
                 jacobian = self.jacobianMatrix(endEffector, fkMatrices)
 
+                
+
                 dq = np.linalg.pinv(jacobian)@dy
-                #print(dq)
+                
+                
 
                 q += dq
                 
-                #print(dq)
                 traj.append(q)
-  
-
                 
                 for i in range(len(dq)):
                     jointAngles[jointNames[i]] = q[i]
@@ -405,7 +422,7 @@ class Simulation(Simulation_base):
         # iterate through joints and update joint states based on IK solver
         trajs, names = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                orientation=orientation,
-                               interpolationSteps=5, #TODO: whats the  interpolation step here?
+                               interpolationSteps=100, #TODO: whats the  interpolation step here?
                                maxIterPerStep=maxIter,
                                threshold=threshold
                                )
@@ -448,8 +465,11 @@ class Simulation(Simulation_base):
         Returns: \\
             u(t) - the manipulation signal
         """
+        integral = 0
+        # proportional term
+        u_t = kp * (x_ref - x_real) + kd * (dx_ref - dx_real)  + ki * integral
         # TODO: Add your code here
-        pass
+        return u_t
 
     # Task 2.2 Joint Manipulation
     def moveJoint(self, joint, targetPosition, targetVelocity, verbose=False):
@@ -468,7 +488,7 @@ class Simulation(Simulation_base):
 
             ### Start your code here: ###
             # Calculate the torque with the above method you've made
-            torque = 0.0
+            torque = self.calculateTorque(self, x_ref, x_real, dx_ref, dx_real, integral, kp, ki, kd)
             ### To here ###
 
             pltTorque.append(torque)
@@ -501,6 +521,13 @@ class Simulation(Simulation_base):
         Return:
             pltTime, pltDistance arrays used for plotting
         """
+        targetStates, jointNames = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
+                               orientation=orientation,
+                               interpolationSteps=5, #TODO: whats the  interpolation step here?
+                               maxIterPerStep=maxIter,
+                               threshold=threshold
+                               )
+        self.tick(targetStates, jointNames)
         #TODO add your code here
         # Iterate through joints and use states from IK solver as reference states in PD controller.
         # Perform iterations to track reference states using PD controller until reaching
@@ -513,15 +540,17 @@ class Simulation(Simulation_base):
         #return pltTime, pltDistance
         pass
 
-    def tick(self):
+    def tick(self, targetStates, targetJoints):
         """Ticks one step of simulation using PD control."""
         # Iterate through all joints and update joint states using PD control.
-        for joint in self.joints:
+        for i, joint in enumerate(self.joints):
+            if joint not in targetJoints:
+                continue
             # skip dummy joints (world to base joint)
             jointController = self.jointControllers[joint]
             if jointController == 'SKIP_THIS_JOINT':
                 continue
-
+            targetState = targetStates[i]
             # disable joint velocity controller before apply a torque
             self.disableVelocityController(joint)
 
@@ -532,7 +561,17 @@ class Simulation(Simulation_base):
 
             ### Implement your code from here ... ###
             # TODO: obtain torque from PD controller
-            torque = 0.0  # TODO: fix me
+            
+            self.joints.jointsInfos[joint]['lastPos']   = self.joints.jointsInfos[joint]['pos']
+            self.joints.jointsInfos[joint]['pos']       = self.getJointPos(joint)
+            
+            self.joints.jointsInfos[joint]['lastVel']   = self.joints.jointsInfos[joint]['vel']
+            self.joints.jointsInfos[joint]['vel']       = (self.joints.jointsInfos[joint]['pos'] - self.joints.jointsInfos[joint]['lastPos']) / self.dt
+            torque = self.calculateTorque(self, targetState, 
+                                                self.joints.jointsInfos[joint]['pos'],
+                                                dx_ref, 
+                                                self.joints.jointsInfos[joint]['vel'],
+                                                0, kp, ki, kd)  # TODO: fix me
             ### ... to here ###
 
             self.p.setJointMotorControl2(
