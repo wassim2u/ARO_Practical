@@ -234,13 +234,14 @@ class Simulation(Simulation_base):
 
             htm =  htm @htms[nextJoint] 
             fkMatrices.append(htm)
+            jointNames.append(nextJoint)
 
             nextJoint = self.getNextJoint(nextJoint, jointName)
-            jointNames.append(nextJoint)
 
         htm =  htm @htms[nextJoint] 
         fkMatrices.append(htm)
         jointNames.append(nextJoint)
+        print(jointNames)
         
 
         return fkMatrices, jointNames
@@ -298,6 +299,7 @@ class Simulation(Simulation_base):
         # p_eff = self.getJointPosition(endEffector)
         # a_eff = self.getJointAxis(endEffector)
         p_eff, a_eff = self.extractPositionAndAngle(fkMatrices[-1])
+        a_eff = a_eff@(self.jointRotationAxis[endEffector]) 
         assert(self.getJointPosition(endEffector), p_eff)
         assert(self.getJointAxis(endEffector), a_eff)
         #TODO: Calculate the transformation matrix once. There may be a better way to go through the homogenous matrix keys
@@ -309,7 +311,7 @@ class Simulation(Simulation_base):
             #Ensure we dont compute the same end effector. 
             
             p_i, a_i = self.extractPositionAndAngle(jointMatrix)
-            a_i = a_i@(self.jointRotationAxis[jointNames[idx]].T)
+            a_i = a_i@(self.jointRotationAxis[jointNames[idx]])
             
             jacobian_position = np.cross(a_i, p_eff - p_i)
             jacobian_vector= np.cross(a_i, a_eff) 
@@ -318,7 +320,7 @@ class Simulation(Simulation_base):
             #print(a_eff)
             #print(jacobian_position)
             #print(jacobian_vector)
-            #jacobian.append(np.hstack([jacobian_position, jacobian_vector]))
+            # jacobian.append(np.hstack((jacobian_position, jacobian_vector)))
             #print(jacobian_vector)
             jacobian.append(jacobian_position)
 
@@ -375,13 +377,15 @@ class Simulation(Simulation_base):
         EFPositions = [np.linalg.norm(efPosition - targetPosition)]
 
         stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)
+        # stepOrientations = np.linspace(efAngle,orientation,num=interpolationSteps)
         for i in range(interpolationSteps):
             currGoal = stepPositions[i]
-            
+            # currGoalTheta = stepOrientations[i]
             
             for iter in range(maxIterPerStep):
-                dy = currGoal - efPosition   
-                
+                dy = currGoal - efPosition
+                # dtheta = currGoalTheta - efAngle
+                # dyAndTheta = np.hstack((dy,dtheta))
                 jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
 
                 dq = np.linalg.pinv(jacobian)@dy

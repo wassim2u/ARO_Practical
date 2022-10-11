@@ -68,7 +68,6 @@ targetPosition = np.array([0.37, 0.23, 1.06385])  # x,y,z coordinates in world f
 
 pltTime, pltEFPosition = sim.move_without_PD(endEffector, targetPosition, speed=0.01, orientation=None, threshold=1e-3, maxIter=3000, debug=True, verbose=False)
 
-print(pltEFPosition)
 # jointAngles = sim.measureJointAngles()
 
 #FK
@@ -90,3 +89,7 @@ plt.subplots_adjust(left=0.15)
 if task1_savefig:
     fig.savefig(task1_figure_name)
 plt.show()
+
+
+
+
