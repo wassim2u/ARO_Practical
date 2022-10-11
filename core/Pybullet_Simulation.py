@@ -280,7 +280,7 @@ class Simulation(Simulation_base):
         """Get the orientation of a joint in the world frame, leave this unchanged please."""
         return np.array(self.getJointLocationAndOrientation(jointName)[1] @ self.jointRotationAxis[jointName]).squeeze()
 
-    def jacobianMatrix(self, endEffector, fkMatrices):
+    def jacobianMatrix(self, endEffector, fkMatrices, jointNames):
         """Calculate the Jacobian Matrix for the Nextage Robot."""
         # TODO modify from here
         # You can implement the cross product yourself or use calculateJacobian().
@@ -305,11 +305,11 @@ class Simulation(Simulation_base):
         jacobian = []
         
 
-        for jointMatrix in fkMatrices:
+        for idx, jointMatrix in enumerate(fkMatrices):
             #Ensure we dont compute the same end effector. 
             
             p_i, a_i = self.extractPositionAndAngle(jointMatrix)
-            a_i = a_i@(np.array([1,0,0]).T)
+            a_i = a_i@(self.jointRotationAxis[jointNames[idx]].T)
             
             jacobian_position = np.cross(a_i, p_eff - p_i)
             jacobian_vector= np.cross(a_i, a_eff) 
@@ -367,21 +367,22 @@ class Simulation(Simulation_base):
         fkMatrices, jointNames = self.forwardKinematics(endEffector, jointAngles)
         
         efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
-        print(efPosition)
         
         #Joint angles
         q = np.array([ jointAngles[val] for val in jointNames] ) 
  
         traj = [q]
-        
+        EFPositions = [np.linalg.norm(efPosition - targetPosition)]
+
         stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)
         for i in range(interpolationSteps):
             currGoal = stepPositions[i]
             
+            
             for iter in range(maxIterPerStep):
                 dy = currGoal - efPosition   
                 
-                jacobian = self.jacobianMatrix(endEffector, fkMatrices)
+                jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
 
                 dq = np.linalg.pinv(jacobian)@dy
 
@@ -406,13 +407,12 @@ class Simulation(Simulation_base):
                 #Missing the FK calculate and updating end effector 
                 if np.linalg.norm(efPosition - currGoal) < threshold:
                     break
+            EFPositions.append(np.linalg.norm(efPosition - targetPosition))
                 
-                
-                    
+         
         
-            
         #TODO: You should directly (re)set the joint positions to be the desired values using a method such as Simulation.p.resetJointState() or else
-        return np.array(traj), jointNames
+        return np.array(traj), jointNames, EFPositions
 
     def move_without_PD(self, endEffector, targetPosition, speed=0.01, orientation=None,
         threshold=1e-3, maxIter=3000, debug=False, verbose=False):
@@ -424,30 +424,30 @@ class Simulation(Simulation_base):
         """
         #TODO add your code here
         # iterate through joints and update joint states based on IK solver
-        trajs, names = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
+        trajs, names, EFPositions = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                orientation=orientation,
-                               interpolationSteps=2, #TODO: whats the  interpolation step here?
+                               interpolationSteps=1000, #TODO: whats the  interpolation step here?
                                maxIterPerStep=maxIter,
                                threshold=threshold
                                )
-
 
         #return pltTime, pltDistance
         for traj in trajs:
             self.tick_without_PD(names, traj)
             
-#  self.p.resetJointState(
-#                 self.robot, self.jointIds[jointName], jointPoses[jointName])
+        pltTimes = [i for i in range(len(EFPositions))]
 
-        return
+        return pltTimes, EFPositions
 
     def tick_without_PD(self, names, traj):
         """Ticks one step of simulation without PD control. """
         # TODO modify from here
         # Iterate through all joints and update joint states.
             # For each joint, you can use the shared variable self.jointTargetPos.
-        for i, name in enumerate(names):
+            
+        for i, name in enumerate(names):                
                 self.p.resetJointState(self.robot, self.jointIds[name], traj[i])
+                
         self.p.stepSimulation()
         self.drawDebugLines()
         time.sleep(self.dt)
