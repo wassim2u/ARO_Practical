@@ -81,7 +81,7 @@ class Simulation(Simulation_base):
 
         self.frameTranslationFromParent = {
             'base_to_dummy': np.zeros(3),  # Virtual joint
-            'base_to_waist': np.zeros(3),  # Fixed joint
+            'base_to_waist': np.array([0, 0, 0.85]),  # Fixed joint
             # TODO: modify from here
             'CHEST_JOINT0': np.array([0, 0, 0.267]),
             'HEAD_JOINT0': np.array([0, 0, 0.302]),
@@ -128,7 +128,7 @@ class Simulation(Simulation_base):
         elif "CHEST_JOINT0" in jointName and "RARM" in finalJoint:
             return self.jointMap["CHEST_JOINT0_RIGHT"]
         elif "CHEST_JOINT0" in jointName and "HEAD" in finalJoint:
-            return self.jointMap["CHEST_JOINT0_LEFT"]
+            return self.jointMap["CHEST_JOINT0_HEAD"]
         elif "CHEST_JOINT0" == finalJoint:
             return finalJoint          
         else:
@@ -231,11 +231,17 @@ class Simulation(Simulation_base):
         nextJoint = self.getNextJoint(curr_joint, jointName)
 
         while nextJoint != jointName:
+
             htm =  htm @htms[nextJoint] 
             fkMatrices.append(htm)
 
             nextJoint = self.getNextJoint(nextJoint, jointName)
             jointNames.append(nextJoint)
+
+        htm =  htm @htms[nextJoint] 
+        fkMatrices.append(htm)
+        jointNames.append(nextJoint)
+        
 
         return fkMatrices, jointNames
 
@@ -321,7 +327,8 @@ class Simulation(Simulation_base):
     ################# Helper Functions ################
     
     def extractPositionAndAngle(self, jointMatrix):
-        a_i = jointMatrix[:3,:3]#@(np.array([1,0,0]).T)
+        a_i = jointMatrix[:3,:3]
+        # @(np.array([1,0,0]).T)
         #print("Rotation matrix")
         #print(a_i)
         p_i = jointMatrix[:3,3]
@@ -360,6 +367,7 @@ class Simulation(Simulation_base):
         fkMatrices, jointNames = self.forwardKinematics(endEffector, jointAngles)
         
         efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+        print(efPosition)
         
         #Joint angles
         q = np.array([ jointAngles[val] for val in jointNames] ) 
@@ -375,11 +383,7 @@ class Simulation(Simulation_base):
                 
                 jacobian = self.jacobianMatrix(endEffector, fkMatrices)
 
-                
-
                 dq = np.linalg.pinv(jacobian)@dy
-                
-                
 
                 q += dq
                 
@@ -422,7 +426,7 @@ class Simulation(Simulation_base):
         # iterate through joints and update joint states based on IK solver
         trajs, names = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                orientation=orientation,
-                               interpolationSteps=100, #TODO: whats the  interpolation step here?
+                               interpolationSteps=2, #TODO: whats the  interpolation step here?
                                maxIterPerStep=maxIter,
                                threshold=threshold
                                )
