@@ -212,7 +212,7 @@ class Simulation(Simulation_base):
         return transformationMatrices
     
     
-    def forwardKinematics(self, jointName, jointPos):
+    def forwardKinematics(self, jointName, jointPos, curr_joint="base_to_dummy"):
         """
             Returns the position and rotation matrix of a given joint using Forward Kinematics
             according to the topology of the Nextage robot.
@@ -223,7 +223,6 @@ class Simulation(Simulation_base):
         fkMatrices = []
         jointNames = []
         # current joint and its transformation matrix
-        curr_joint = "base_to_dummy"
         htm = htms[curr_joint]
         fkMatrices.append(htm)
 
@@ -241,7 +240,7 @@ class Simulation(Simulation_base):
         htm =  htm @htms[nextJoint] 
         fkMatrices.append(htm)
         jointNames.append(nextJoint)
-        print(jointNames)
+        #print(jointNames)
         
 
         return fkMatrices, jointNames
