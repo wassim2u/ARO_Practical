@@ -10,6 +10,7 @@ import math
 import re
 import time
 import yaml
+import pybullet as p
 
 from Pybullet_Simulation_base import Simulation_base
 
@@ -374,11 +375,14 @@ class Simulation(Simulation_base):
  
         traj = [q]
         EFPositions = [np.linalg.norm(efPosition - targetPosition)]
+        EFLocations = [efPosition]
 
-        stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)
+        stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)[1:]
+        print(stepPositions)
         # stepOrientations = np.linspace(efAngle,orientation,num=interpolationSteps)
-        for i in range(interpolationSteps):
+        for i in range(len(stepPositions)):
             currGoal = stepPositions[i]
+            print(currGoal)
             # currGoalTheta = stepOrientations[i]
             
             for iter in range(maxIterPerStep):
@@ -390,6 +394,7 @@ class Simulation(Simulation_base):
                 dq = np.linalg.pinv(jacobian)@dy
 
                 q += dq
+                #print(dq)
                 
                 traj.append(q)
                 
@@ -401,9 +406,11 @@ class Simulation(Simulation_base):
                 
                 #Calculate the FK again with the updated joint angles
                 fkMatrices, jointNames_2 = self.forwardKinematics(endEffector, jointAngles, startJoint)
+
                 assert(jointNames== jointNames_2)
                 #Calculate the new end effector position
                 efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+                EFLocations.append(efPosition)
         
                 
                 #TODO: calculate the new end effector 
@@ -411,9 +418,12 @@ class Simulation(Simulation_base):
                 if np.linalg.norm(efPosition - currGoal) < threshold:
                     break
             EFPositions.append(np.linalg.norm(efPosition - targetPosition))
+            
         
         #TODO: You should directly (re)set the joint positions to be the desired values using a method such as Simulation.p.resetJointState() or else
-        return np.array(traj), jointNames, EFPositions
+        
+        
+        return np.array(traj), jointNames, EFPositions, EFLocations
 
     def move_without_PD(self, endEffector, targetPosition, speed=0.01, orientation=None,
         threshold=1e-3, maxIter=3000, debug=False, verbose=False, startJoint = "base_to_dummy"):
@@ -425,15 +435,16 @@ class Simulation(Simulation_base):
         """
         #TODO add your code here
         # iterate through joints and update joint states based on IK solver
-        trajs, names, EFPositions = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
+        trajs, names, EFPositions, _ = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                orientation=orientation,
-                               interpolationSteps=10, #TODO: whats the  interpolation step here?
+                               interpolationSteps=5, #TODO: whats the  interpolation step here?
                                maxIterPerStep=maxIter,
                                threshold=threshold,
                                startJoint=startJoint
                                )
 
         #return pltTime, pltDistance
+
         for traj in trajs:
             self.tick_without_PD(names, traj)
             
@@ -545,21 +556,36 @@ class Simulation(Simulation_base):
         Return:
             pltTime, pltDistance arrays used for plotting
         """
-        targetStatess, jointNames, efPositions = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
-                                                orientation=orientation,
-                                                interpolationSteps=100, #TODO: whats the  interpolation step here?
-                                                maxIterPerStep=maxIter,
-                                                threshold=threshold,
-                                                startJoint=startJoint
-                                                )
-        
-        print(targetStatess)
+        targetStatess, jointNames, efPositions, eflocations = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
+                                                                orientation=orientation,
+                                                                interpolationSteps=5, #TODO: whats the  interpolation step here?
+                                                                maxIterPerStep=maxIter,
+                                                                threshold=threshold,
+                                                                startJoint=startJoint
+                                                                )
+                        
+        print("Done with kinematics")
+    
+
+
         for i, targetStates in enumerate(targetStatess):
             
-            
-            while(np.linalg.norm(self.getJointPosition(endEffector) - targetPosition) > threshold):
+                visualShift = eflocations[i]
+                collisionShift = [0,0,0]
+                inertiaShift = [0,0,0]
+
+                meshScale=[0.1,0.1,0.1]
+                visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[1,0,0,1],radius= 0.015, visualFramePosition=visualShift, meshScale=meshScale)
+
+                p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,1], useMaximalCoordinates=False)
+
+                for j in range(maxIter):
+            #while(np.linalg.norm(self.getJointPosition(endEffector) - targetPosition) > threshold):
                 
-                self.tick(targetStates, jointNames)
+                    self.tick(targetStatess[-1], jointNames)
+                    print(np.linalg.norm(self.getJointPosition(endEffector) - targetStatess[-1][i]))#eflocations[i]))
+                    if(np.linalg.norm(self.getJointPosition(endEffector) - targetStatess[-1][i]) < threshold):
+                        break
                 
             #print()
             #   
@@ -612,7 +638,7 @@ class Simulation(Simulation_base):
                                             self.jointsInfos[joint]['vel'],
                                             0, kp, ki, kd)  # TODO: fix me
             ### ... to here ###
-        #print(joint, ":", torque)
+            #print(joint, ":", torque)
             self.p.setJointMotorControl2(
                 bodyIndex=self.robot,
                 jointIndex=self.jointIds[joint],
