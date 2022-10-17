@@ -374,7 +374,7 @@ class Simulation(Simulation_base):
         q = np.array([ jointAngles[val] for val in jointNames] ) 
  
         traj = [q]
-        EFPositions = [np.linalg.norm(efPosition - targetPosition)]
+        EFDif = [np.linalg.norm(efPosition - targetPosition)]
         EFLocations = [efPosition]
 
         stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)[1:]
@@ -410,20 +410,32 @@ class Simulation(Simulation_base):
                 assert(jointNames== jointNames_2)
                 #Calculate the new end effector position
                 efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
-                EFLocations.append(efPosition)
-        
+                # EFLocations.append(efPosition)
+                
+                    
+               
                 
                 #TODO: calculate the new end effector 
                 #Missing the FK calculate and updating end effector 
                 if np.linalg.norm(efPosition - currGoal) < threshold:
                     break
-            EFPositions.append(np.linalg.norm(efPosition - targetPosition))
+            EFLocations.append(efPosition)
+            visualShift = efPosition
+            collisionShift = [0,0,0]
+            inertiaShift = [0,0,0]
+
+            meshScale=[0.1,0.1,0.1]
+            visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[0,1,0,1],radius= 0.005, visualFramePosition=visualShift, meshScale=meshScale)
+
+            p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,1], useMaximalCoordinates=False)
+
+            EFDif.append(np.linalg.norm(efPosition - targetPosition))
             
         
         #TODO: You should directly (re)set the joint positions to be the desired values using a method such as Simulation.p.resetJointState() or else
         
         
-        return np.array(traj), jointNames, EFPositions, EFLocations
+        return np.array(traj), jointNames, EFDif, EFLocations
 
     def move_without_PD(self, endEffector, targetPosition, speed=0.01, orientation=None,
         threshold=1e-3, maxIter=3000, debug=False, verbose=False, startJoint = "base_to_dummy"):
@@ -558,34 +570,35 @@ class Simulation(Simulation_base):
         """
         targetStatess, jointNames, efPositions, eflocations = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                                                 orientation=orientation,
-                                                                interpolationSteps=5, #TODO: whats the  interpolation step here?
+                                                                interpolationSteps=20, #TODO: whats the  interpolation step here?
                                                                 maxIterPerStep=maxIter,
                                                                 threshold=threshold,
                                                                 startJoint=startJoint
                                                                 )
                         
         print("Done with kinematics")
-    
+
+        final = targetStatess[-1]
 
 
-        for i, targetStates in enumerate(targetStatess):
+        # for i, targetStates in enumerate(targetStatess):
             
-                visualShift = eflocations[i]
-                collisionShift = [0,0,0]
-                inertiaShift = [0,0,0]
+        visualShift = eflocations[-1]
+        collisionShift = [0,0,0]
+        inertiaShift = [0,0,0]
 
-                meshScale=[0.1,0.1,0.1]
-                visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[1,0,0,1],radius= 0.015, visualFramePosition=visualShift, meshScale=meshScale)
+        meshScale=[0.1,0.1,0.1]
+        visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[1,0,0,1],radius= 0.015, visualFramePosition=visualShift, meshScale=meshScale)
 
-                p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,1], useMaximalCoordinates=False)
+        p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,1], useMaximalCoordinates=False)
 
-                for j in range(maxIter):
-            #while(np.linalg.norm(self.getJointPosition(endEffector) - targetPosition) > threshold):
-                
-                    self.tick(targetStatess[-1], jointNames)
-                    print(np.linalg.norm(self.getJointPosition(endEffector) - targetStatess[-1][i]))#eflocations[i]))
-                    if(np.linalg.norm(self.getJointPosition(endEffector) - targetStatess[-1][i]) < threshold):
-                        break
+        for j in range(maxIter):
+    #while(np.linalg.norm(self.getJointPosition(endEffector) - targetPosition) > threshold):
+        
+            self.tick(targetStatess[-1], jointNames)
+            print(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]))#eflocations[i]))
+            if(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]) < threshold):
+                break
                 
             #print()
             #   
@@ -638,7 +651,7 @@ class Simulation(Simulation_base):
                                             self.jointsInfos[joint]['vel'],
                                             0, kp, ki, kd)  # TODO: fix me
             ### ... to here ###
-            #print(joint, ":", torque)
+            print(joint, ":", torque)
             self.p.setJointMotorControl2(
                 bodyIndex=self.robot,
                 jointIndex=self.jointIds[joint],
