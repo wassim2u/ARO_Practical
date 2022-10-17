@@ -82,7 +82,7 @@ class Simulation(Simulation_base):
 
         self.frameTranslationFromParent = {
             'base_to_dummy': np.zeros(3),  # Virtual joint
-            'base_to_waist': np.array([0, 0, 0.85]),  # Fixed joint
+            'base_to_waist': np.zeros(3),  # Fixed joint
             # TODO: modify from here
             'CHEST_JOINT0': np.array([0, 0, 0.267]),
             'HEAD_JOINT0': np.array([0, 0, 0.302]),
@@ -130,8 +130,8 @@ class Simulation(Simulation_base):
             return self.jointMap["CHEST_JOINT0_RIGHT"]
         elif "CHEST_JOINT0" in jointName and "HEAD" in finalJoint:
             return self.jointMap["CHEST_JOINT0_HEAD"]
-        elif "CHEST_JOINT0" == finalJoint:
-            return finalJoint          
+        elif "base_to_waist" == jointName:
+            return "CHEST_JOINT0"          
         else:
            
             nextJoint =  self.jointMap[jointName]
@@ -226,7 +226,6 @@ class Simulation(Simulation_base):
         # current joint and its transformation matrix
         htm = htms[startJoint]
         fkMatrices.append(htm)
-
         jointNames.append(startJoint)
         nextJoint = self.getNextJoint(startJoint, jointName)
 
@@ -367,7 +366,9 @@ class Simulation(Simulation_base):
 
         #FK
         fkMatrices, jointNames = self.forwardKinematics(endEffector, jointAngles, startJoint)
-        
+        print(jointNames)
+        print(len(fkMatrices))
+        print(len(jointNames))
         efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
         
         #Joint angles
@@ -376,13 +377,22 @@ class Simulation(Simulation_base):
         traj = [q]
         EFDif = [np.linalg.norm(efPosition - targetPosition)]
         EFLocations = [efPosition]
+        
+        # -- Debug - Draw where the end effector starts in light blue
+        print("Starting EF Position :" + str(efPosition))
+        visualShift = efPosition
+        collisionShift = [0,0,0]
+        inertiaShift = [0,0,0]
 
-        stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)[1:]
-        print(stepPositions)
+        meshScale=[0.1,0.1,0.1]
+        visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[0,1,1,1],radius= 0.02, visualFramePosition=visualShift, meshScale=meshScale)
+
+        p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
+        # Compute the tiny changes in positions for the end effector to go towards the target
+        stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)
         # stepOrientations = np.linspace(efAngle,orientation,num=interpolationSteps)
         for i in range(len(stepPositions)):
             currGoal = stepPositions[i]
-            print(currGoal)
             # currGoalTheta = stepOrientations[i]
             
             for iter in range(maxIterPerStep):
@@ -427,7 +437,7 @@ class Simulation(Simulation_base):
             meshScale=[0.1,0.1,0.1]
             visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[0,1,0,1],radius= 0.005, visualFramePosition=visualShift, meshScale=meshScale)
 
-            p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,1], useMaximalCoordinates=False)
+            p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
 
             EFDif.append(np.linalg.norm(efPosition - targetPosition))
             
@@ -449,7 +459,7 @@ class Simulation(Simulation_base):
         # iterate through joints and update joint states based on IK solver
         trajs, names, EFPositions, _ = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                orientation=orientation,
-                               interpolationSteps=5, #TODO: whats the  interpolation step here?
+                               interpolationSteps=50, #TODO: whats the  interpolation step here?
                                maxIterPerStep=maxIter,
                                threshold=threshold,
                                startJoint=startJoint
@@ -570,7 +580,7 @@ class Simulation(Simulation_base):
         """
         targetStatess, jointNames, efPositions, eflocations = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                                                 orientation=orientation,
-                                                                interpolationSteps=20, #TODO: whats the  interpolation step here?
+                                                                interpolationSteps=50, #TODO: whats the  interpolation step here?
                                                                 maxIterPerStep=maxIter,
                                                                 threshold=threshold,
                                                                 startJoint=startJoint
@@ -590,7 +600,7 @@ class Simulation(Simulation_base):
         meshScale=[0.1,0.1,0.1]
         visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[1,0,0,1],radius= 0.015, visualFramePosition=visualShift, meshScale=meshScale)
 
-        p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,1], useMaximalCoordinates=False)
+        p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
 
         for j in range(maxIter):
     #while(np.linalg.norm(self.getJointPosition(endEffector) - targetPosition) > threshold):
@@ -598,6 +608,7 @@ class Simulation(Simulation_base):
             self.tick(targetStatess[-1], jointNames)
             print(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]))#eflocations[i]))
             if(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]) < threshold):
+                print("BREAK YOUR KNEES")
                 break
                 
             #print()
