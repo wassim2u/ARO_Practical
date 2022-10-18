@@ -315,7 +315,9 @@ class Simulation(Simulation_base):
             jacobian_position = np.cross(a_i, p_eff - p_i)
             jacobian_vector= np.cross(a_i, a_eff) 
 
-            jacobian.append(jacobian_position)
+            curr_jacobian= np.hstack((jacobian_position, jacobian_vector))
+            # jacobian.append(jacobian_position)
+            jacobian.append(curr_jacobian)
 
         return np.array(jacobian).T
     
@@ -347,8 +349,10 @@ class Simulation(Simulation_base):
         # TODO add your code here
         # Hint: return a numpy array which includes the reference angular
         # positions for all joints after performing inverse kinematics.
-        
-        
+        if orientation==None:
+            orientation = [0,0,0]
+            # orientation = self.getJointOrientation(endEffector) 
+            print(self.refVector)
         #TODO: Work with orientation as well
         
         # set the initial robot configuration
@@ -361,8 +365,10 @@ class Simulation(Simulation_base):
         #print(jointNames)
         #print(len(fkMatrices))
         #print(len(jointNames))
-        efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+        efPosition, efRotationMatrix = self.extractPositionAndAngle(fkMatrices[-1])
         
+        efOrientation = self.getJointOrientation(endEffector) 
+        print(efOrientation)
         #Joint angles
         q = np.array([ jointAngles[val] for val in jointNames] ) 
  
@@ -382,23 +388,27 @@ class Simulation(Simulation_base):
         p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
         # Compute the tiny changes in positions for the end effector to go towards the target
         stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)
-        # stepOrientations = np.linspace(efAngle,orientation,num=interpolationSteps)
+        #TODO: Check whether we are meant to retrieve step orientations with linspace. Sti
+        stepOrientations = np.linspace(efOrientation,orientation,num=interpolationSteps)
         for i in range(len(stepPositions)):
             currGoal = stepPositions[i]
-            # currGoalTheta = stepOrientations[i]
-            
+            currGoalOrientation = stepOrientations[i]
             for iter in range(maxIterPerStep):
                 dy = currGoal - efPosition
-                # dtheta = currGoalTheta - efAngle
-                # dyAndTheta = np.hstack((dy,dtheta))
+                # dtheta = currGoalOrientation - efOrientation
+                dtheta = [0,0,0]
+                #TODO: Fix orientation method. Still need to adjust for when refVector is [1,0,0] as it doesnt work well in this orientation
+                if orientation!=[0,0,0] and orientation!=None:
+                    dtheta = currGoalOrientation - efOrientation
+                print(dtheta)
+                dyAndTheta = np.hstack((dy,dtheta))
                 jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
 
-                dq = np.linalg.pinv(jacobian)@dy
+                dq = np.linalg.pinv(jacobian)@dyAndTheta
 
                 q += dq
                 #print(dq)
                 
-                traj.append(q)
                 
                 for i in range(len(dq)):
                     jointAngles[jointNames[i]] = q[i]
@@ -412,12 +422,16 @@ class Simulation(Simulation_base):
                 assert(jointNames== jointNames_2)
                 #Calculate the new end effector position
                 efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+                # efOrientation = self.getJointOrientation(endEffector)
+                efOrientation = np.array(efAngle @ self.refVector).squeeze()
+                
                 # EFLocations.append(efPosition)
                 
                     
                
                 
-                #TODO: calculate the new end effector 
+                #TODO: calculate the new end effector. 
+                
                 #Missing the FK calculate and updating end effector 
                 if np.linalg.norm(efPosition - currGoal) < threshold:
                     break
@@ -433,10 +447,11 @@ class Simulation(Simulation_base):
 
             EFDif.append(np.linalg.norm(efPosition - targetPosition))
             
-        
+            traj.append(q)
+
         #TODO: You should directly (re)set the joint positions to be the desired values using a method such as Simulation.p.resetJointState() or else
         
-        
+        print(efOrientation)
         return np.array(traj), jointNames, EFDif, EFLocations
 
     def move_without_PD(self, endEffector, targetPosition, speed=0.01, orientation=None,
@@ -451,7 +466,7 @@ class Simulation(Simulation_base):
         # iterate through joints and update joint states based on IK solver
         trajs, names, EFPositions, _ = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                orientation=orientation,
-                               interpolationSteps=50, #TODO: whats the  interpolation step here?
+                               interpolationSteps=500, #TODO: whats the  interpolation step here?
                                maxIterPerStep=maxIter,
                                threshold=threshold,
                                startJoint=startJoint
