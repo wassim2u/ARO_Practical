@@ -49,9 +49,7 @@ sim = Simulation(pybulletConfigs, robotConfigs)
 # This is an example target (angular) position for the joint LARM_JOINT2
 task2_jointName = "LARM_JOINT5"
 #task2_targetPosition = np.array([1, 1, 1])#)  # joint (angular) position in radians
-task2_targetPosition = np.array([0.37, 0.23, 1.06385])  - np.array([-0.2, 0., 0.75]) #np.array([0.37, 0.23, 1.06385]) + np.array([0, 0, 0.85]) 
-
-task2_targetPosition = np.array([0.37, 0.23, 1.06385]) - np.array([0,0,0.85])#np.array([0.37, 0.23, 1.06385]) + np.array([0, 0, 0.85]) 
+task2_targetPosition = np.array([0.37, 0.23, 1.06385])  - np.array([-0.2, -0.2, 0.20]) #np.array([0.37, 0.23, 1.06385]) + np.array([0, 0, 0.85]) 
 
 task2_targetVelocity = 0.0  # joint (angular) velocity in radians per second
 verbose = False
@@ -82,7 +80,7 @@ visualShapeId = bullet_simulation.createVisualShape(shapeType=bullet_simulation.
 
 bullet_simulation.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
 
-sim.move_with_PD(task2_jointName, task2_targetPosition, speed=0.01, orientation=None, threshold=1e-3, maxIter=6000, debug=True, verbose=False, startJoint = "base_to_dummy")
+sim.move_with_PD(task2_jointName, task2_targetPosition, speed=0.01, orientation=None, threshold=1e-3, maxIter=3000, debug=True, verbose=False, startJoint = "base_to_dummy")
 time.sleep(100)
 
 # modify the code in below if needed

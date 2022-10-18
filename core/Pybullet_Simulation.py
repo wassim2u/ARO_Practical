@@ -314,13 +314,7 @@ class Simulation(Simulation_base):
             
             jacobian_position = np.cross(a_i, p_eff - p_i)
             jacobian_vector= np.cross(a_i, a_eff) 
-            #Combine the results together
-            #print(p_eff - p_i)
-            #print(a_eff)
-            #print(jacobian_position)
-            #print(jacobian_vector)
-            # jacobian.append(np.hstack((jacobian_position, jacobian_vector)))
-            #print(jacobian_vector)
+
             jacobian.append(jacobian_position)
 
         return np.array(jacobian).T
@@ -329,9 +323,7 @@ class Simulation(Simulation_base):
     
     def extractPositionAndAngle(self, jointMatrix):
         a_i = jointMatrix[:3,:3]
-        # @(np.array([1,0,0]).T)
-        #print("Rotation matrix")
-        #print(a_i)
+
         p_i = jointMatrix[:3,3]
 
         return p_i, a_i
@@ -366,9 +358,9 @@ class Simulation(Simulation_base):
 
         #FK
         fkMatrices, jointNames = self.forwardKinematics(endEffector, jointAngles, startJoint)
-        print(jointNames)
-        print(len(fkMatrices))
-        print(len(jointNames))
+        #print(jointNames)
+        #print(len(fkMatrices))
+        #print(len(jointNames))
         efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
         
         #Joint angles
@@ -566,8 +558,8 @@ class Simulation(Simulation_base):
         pltTime, pltTarget, pltTorque, pltTorqueTime, pltPosition, pltVelocity = [], [], [], [], [], []
         
         while (abs(self.getJointPos(joint) - targetPosition) > 1e-3):
-            toy_tick(targetPosition, self.jointsInfos[joint]['pos'], targetVelocity, self.jointsInfos[joint]['vel'], 0)
-
+            toy_tick(targetPosition, self.jointsInfos[joint]['pos'], targetVelocity, self.jointsInfos[joint]['vel'], integral=0)
+            
         return pltTime, pltTarget, pltTorque, pltTorqueTime, pltPosition, pltVelocity
 
     def move_with_PD(self, endEffector, targetPosition, speed=0.01, orientation=None,
@@ -578,7 +570,7 @@ class Simulation(Simulation_base):
         Return:
             pltTime, pltDistance arrays used for plotting
         """
-        targetStatess, jointNames, efPositions, eflocations = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
+        targetStatess, jointNames, efDiffs, eflocations = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                                                 orientation=orientation,
                                                                 interpolationSteps=50, #TODO: whats the  interpolation step here?
                                                                 maxIterPerStep=maxIter,
@@ -623,8 +615,10 @@ class Simulation(Simulation_base):
         # Hint: here you can add extra steps if you want to allow your PD
         # controller to converge to the final target position after performing
         # all IK iterations (optional).
+        
+        
 
-        #return pltTime, pltDistance
+        # return pltTime, pltDistance
         return
 
     def tick(self, targetStates, targetJoints):
