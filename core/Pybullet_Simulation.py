@@ -405,15 +405,14 @@ class Simulation(Simulation_base):
                 jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
 
                 dq = np.linalg.pinv(jacobian)@dyAndTheta
+                prev_q = q + dq
 
                 q += dq
-                #print(dq)
+                traj.append(q)
                 
                 
                 for i in range(len(dq)):
                     jointAngles[jointNames[i]] = q[i]
-
-                
                 q = np.array([ jointAngles[val] for val in jointNames] ) 
                 
                 #Calculate the FK again with the updated joint angles
@@ -427,6 +426,7 @@ class Simulation(Simulation_base):
                 
                 # EFLocations.append(efPosition)
                 
+
                     
                
                 
@@ -447,7 +447,6 @@ class Simulation(Simulation_base):
 
             EFDif.append(np.linalg.norm(efPosition - targetPosition))
             
-            traj.append(q)
 
         #TODO: You should directly (re)set the joint positions to be the desired values using a method such as Simulation.p.resetJointState() or else
         
