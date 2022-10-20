@@ -393,48 +393,44 @@ class Simulation(Simulation_base):
         for i in range(len(stepPositions)):
             currGoal = stepPositions[i]
             currGoalOrientation = stepOrientations[i]
-            for iter in range(maxIterPerStep):
-                dy = currGoal - efPosition
-                # dtheta = currGoalOrientation - efOrientation
-                dtheta = [0,0,0]
-                #TODO: Fix orientation method. Still need to adjust for when refVector is [1,0,0] as it doesnt work well in this orientation
-                if orientation!=[0,0,0] and orientation!=None:
-                    dtheta = currGoalOrientation - efOrientation
-                print(dtheta)
-                dyAndTheta = np.hstack((dy,dtheta))
-                jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
+            
+            dy = currGoal - efPosition
+            dtheta = [0,0,0]
+            #TODO: Fix orientation method. Still need to adjust for when refVector is [1,0,0] as it doesnt work well in this orientation
+            if orientation!=[0,0,0] and orientation!=None:
+                dtheta = currGoalOrientation - efOrientation
+            print(dtheta)
+            dyAndTheta = np.hstack((dy,dtheta))
+            jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
 
-                dq = np.linalg.pinv(jacobian)@dyAndTheta
-                prev_q = q + dq
+            dq = np.linalg.pinv(jacobian)@dyAndTheta
+            prev_q = q + dq
 
-                q += dq
-                traj.append(q)
-                
-                
-                for i in range(len(dq)):
-                    jointAngles[jointNames[i]] = q[i]
-                q = np.array([ jointAngles[val] for val in jointNames] ) 
-                
-                #Calculate the FK again with the updated joint angles
-                fkMatrices, jointNames_2 = self.forwardKinematics(endEffector, jointAngles, startJoint)
+            q += dq
+            traj.append(q)
+            
+            
+            for i in range(len(dq)):
+                jointAngles[jointNames[i]] = q[i]
+            q = np.array([ jointAngles[val] for val in jointNames] ) 
+            
+            #Calculate the FK again with the updated joint angles
+            fkMatrices, jointNames_2 = self.forwardKinematics(endEffector, jointAngles, startJoint)
 
-                assert(jointNames== jointNames_2)
-                #Calculate the new end effector position
-                efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
-                # efOrientation = self.getJointOrientation(endEffector)
-                efOrientation = np.array(efAngle @ self.refVector).squeeze()
-                
-                # EFLocations.append(efPosition)
-                
+            assert(jointNames== jointNames_2)
+            #Calculate the new end effector position
+            efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+            # efOrientation = self.getJointOrientation(endEffector)
+            efOrientation = np.array(efAngle @ self.refVector).squeeze()
+            
+            # EFLocations.append(efPosition)
+            
 
-                    
-               
                 
-                #TODO: calculate the new end effector. 
+            
                 
-                #Missing the FK calculate and updating end effector 
-                if np.linalg.norm(efPosition - currGoal) < threshold:
-                    break
+                
+             
             EFLocations.append(efPosition)
             visualShift = efPosition
             collisionShift = [0,0,0]
