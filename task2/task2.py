@@ -49,7 +49,7 @@ sim = Simulation(pybulletConfigs, robotConfigs)
 # This is an example target (angular) position for the joint LARM_JOINT2
 task2_jointName = "LARM_JOINT5"
 #task2_targetPosition = np.array([1, 1, 1])#)  # joint (angular) position in radians
-task2_targetPosition = np.array([0.37, 0.23, 1.06385])  - np.array([-0.2, -0.2, 0.20]) #np.array([0.37, 0.23, 1.06385]) + np.array([0, 0, 0.85]) 
+task2_targetPosition = np.array([0.37, 0.23, 1.06385])  - np.array([-0.2, -0.2, 0.40]) #np.array([0.37, 0.23, 1.06385])  
 
 task2_targetVelocity = 0.0  # joint (angular) velocity in radians per second
 verbose = False

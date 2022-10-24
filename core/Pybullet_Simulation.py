@@ -315,7 +315,8 @@ class Simulation(Simulation_base):
             jacobian_position = np.cross(a_i, p_eff - p_i)
             jacobian_vector= np.cross(a_i, a_eff) 
 
-            jacobian.append(jacobian_position)
+            jacobian.append(np.hstack((jacobian_position, jacobian_vector)))
+            #jacobian.append(jacobian_position)
 
         return np.array(jacobian).T
     
@@ -331,7 +332,7 @@ class Simulation(Simulation_base):
         
     # Task 1.2 Inverse Kinematics
 
-    def inverseKinematics(self, endEffector, targetPosition, orientation, interpolationSteps, maxIterPerStep, threshold, startJoint):
+    def inverseKinematics(self, endEffector, targetPosition, orientation, interpolationSteps, threshold, startJoint):
         """Your IK solver \\
         Arguments: \\
             endEffector: the jointName the end-effector \\
@@ -372,6 +373,7 @@ class Simulation(Simulation_base):
         
         # -- Debug - Draw where the end effector starts in light blue
         print("Starting EF Position :" + str(efPosition))
+        print("Starting EF Angle :" + str(efAngle))
         visualShift = efPosition
         collisionShift = [0,0,0]
         inertiaShift = [0,0,0]
@@ -385,42 +387,42 @@ class Simulation(Simulation_base):
         # stepOrientations = np.linspace(efAngle,orientation,num=interpolationSteps)
         for i in range(len(stepPositions)):
             currGoal = stepPositions[i]
-            # currGoalTheta = stepOrientations[i]
+
+            dy = currGoal - efPosition
+            dyOrientation = orientation - efAngle@self.jointRotationAxis[endEffector]
+            dy = np.hstack((dy, dyOrientation))
+
+
+            jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
+
+            dq = np.linalg.pinv(jacobian)@dy
+
+            q += dq
+            #print(dq)
             
-            for iter in range(maxIterPerStep):
-                dy = currGoal - efPosition
-                # dtheta = currGoalTheta - efAngle
-                # dyAndTheta = np.hstack((dy,dtheta))
-                jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
+            traj.append(q)
+            
+            for i in range(len(dq)):
+                jointAngles[jointNames[i]] = q[i]
 
-                dq = np.linalg.pinv(jacobian)@dy
+            
+            q = np.array([ jointAngles[val] for val in jointNames] ) 
+            
+            #Calculate the FK again with the updated joint angles
+            fkMatrices, jointNames_2 = self.forwardKinematics(endEffector, jointAngles, startJoint)
 
-                q += dq
-                #print(dq)
+            assert(jointNames== jointNames_2)
+            #Calculate the new end effector position
+            efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+            # EFLocations.append(efPosition)
+            
                 
-                traj.append(q)
-                
-                for i in range(len(dq)):
-                    jointAngles[jointNames[i]] = q[i]
-
-                
-                q = np.array([ jointAngles[val] for val in jointNames] ) 
-                
-                #Calculate the FK again with the updated joint angles
-                fkMatrices, jointNames_2 = self.forwardKinematics(endEffector, jointAngles, startJoint)
-
-                assert(jointNames== jointNames_2)
-                #Calculate the new end effector position
-                efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
-                # EFLocations.append(efPosition)
-                
-                    
-               
-                
-                #TODO: calculate the new end effector 
-                #Missing the FK calculate and updating end effector 
-                if np.linalg.norm(efPosition - currGoal) < threshold:
-                    break
+            
+            
+            #TODO: calculate the new end effector 
+            #Missing the FK calculate and updating end effector 
+            #if np.linalg.norm(efPosition - currGoal) < threshold:
+            #    break
             EFLocations.append(efPosition)
             visualShift = efPosition
             collisionShift = [0,0,0]
@@ -452,7 +454,6 @@ class Simulation(Simulation_base):
         trajs, names, EFPositions, _ = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                orientation=orientation,
                                interpolationSteps=50, #TODO: whats the  interpolation step here?
-                               maxIterPerStep=maxIter,
                                threshold=threshold,
                                startJoint=startJoint
                                )
@@ -535,7 +536,7 @@ class Simulation(Simulation_base):
 
             pltTorque.append(torque)
 
-            print("TORQUE:", torque)
+            #print("TORQUE:", torque)
 
             # send the manipulation signal to the joint
             self.p.setJointMotorControl2(
@@ -572,8 +573,7 @@ class Simulation(Simulation_base):
         """
         targetStatess, jointNames, efDiffs, eflocations = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                                                 orientation=orientation,
-                                                                interpolationSteps=50, #TODO: whats the  interpolation step here?
-                                                                maxIterPerStep=maxIter,
+                                                                interpolationSteps=20, #TODO: whats the  interpolation step here?
                                                                 threshold=threshold,
                                                                 startJoint=startJoint
                                                                 )
@@ -598,7 +598,7 @@ class Simulation(Simulation_base):
     #while(np.linalg.norm(self.getJointPosition(endEffector) - targetPosition) > threshold):
         
             self.tick(targetStatess[-1], jointNames)
-            print(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]))#eflocations[i]))
+            #print(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]))#eflocations[i]))
             if(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]) < threshold):
                 print("BREAK YOUR KNEES")
                 break
@@ -656,7 +656,7 @@ class Simulation(Simulation_base):
                                             self.jointsInfos[joint]['vel'],
                                             0, kp, ki, kd)  # TODO: fix me
             ### ... to here ###
-            print(joint, ":", torque)
+            #print(joint, ":", torque)
             self.p.setJointMotorControl2(
                 bodyIndex=self.robot,
                 jointIndex=self.jointIds[joint],
@@ -681,20 +681,23 @@ class Simulation(Simulation_base):
         self.drawDebugLines()
         time.sleep(self.dt)
 
+
     ########## Task 3: Robot Manipulation ##########
-    def cubic_interpolation(self, points, nTimes=100):
+    def cubic_interpolation(self, x, y, nTimes=100):
         """
         Given a set of control points, return the
         cubic spline defined by the control points,
         sampled nTimes along the curve.
         """
+        cs = CubicSpline(x, y, bc_type = "clamped")
+        points = list(zip(*[cs(i) for i in range(nTimes)]))
+
         #TODO add your code here
         # Return 'nTimes' points per dimension in 'points' (typically a 2xN array),
         # sampled from a cubic spline defined by 'points' and a boundary condition.
         # You may use methods found in scipy.interpolate
 
-        #return xpoints, ypoints
-        pass
+        return points[0], points[1]
 
     # Task 3.1 Pushing
     def dockingToPosition(self, leftTargetAngle, rightTargetAngle, angularSpeed=0.005,
