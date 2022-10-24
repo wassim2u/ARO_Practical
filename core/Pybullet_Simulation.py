@@ -348,8 +348,10 @@ class Simulation(Simulation_base):
         # TODO add your code here
         # Hint: return a numpy array which includes the reference angular
         # positions for all joints after performing inverse kinematics.
-        
-        
+        if orientation==None:
+            orientation = [0,0,0]
+            # orientation = self.getJointOrientation(endEffector) 
+            print(self.refVector)
         #TODO: Work with orientation as well
         
         # set the initial robot configuration
@@ -362,8 +364,10 @@ class Simulation(Simulation_base):
         #print(jointNames)
         #print(len(fkMatrices))
         #print(len(jointNames))
-        efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+        efPosition, efRotationMatrix = self.extractPositionAndAngle(fkMatrices[-1])
         
+        efOrientation = self.getJointOrientation(endEffector) 
+        print(efOrientation)
         #Joint angles
         q = np.array([ jointAngles[val] for val in jointNames] ) 
  
@@ -384,7 +388,8 @@ class Simulation(Simulation_base):
         p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
         # Compute the tiny changes in positions for the end effector to go towards the target
         stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)
-        # stepOrientations = np.linspace(efAngle,orientation,num=interpolationSteps)
+        #TODO: Check whether we are meant to retrieve step orientations with linspace. Sti
+        stepOrientations = np.linspace(efOrientation,orientation,num=interpolationSteps)
         for i in range(len(stepPositions)):
             currGoal = stepPositions[i]
 
@@ -435,10 +440,10 @@ class Simulation(Simulation_base):
 
             EFDif.append(np.linalg.norm(efPosition - targetPosition))
             
-        
+
         #TODO: You should directly (re)set the joint positions to be the desired values using a method such as Simulation.p.resetJointState() or else
         
-        
+        print(efOrientation)
         return np.array(traj), jointNames, EFDif, EFLocations
 
     def move_without_PD(self, endEffector, targetPosition, speed=0.01, orientation=None,
