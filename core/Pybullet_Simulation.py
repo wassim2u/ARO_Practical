@@ -364,7 +364,7 @@ class Simulation(Simulation_base):
         #print(jointNames)
         #print(len(fkMatrices))
         #print(len(jointNames))
-        efPosition, efRotationMatrix = self.extractPositionAndAngle(fkMatrices[-1])
+        efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
         
         efOrientation = self.getJointOrientation(endEffector) 
         print(efOrientation)
@@ -688,21 +688,30 @@ class Simulation(Simulation_base):
 
 
     ########## Task 3: Robot Manipulation ##########
-    def cubic_interpolation(self, x, y, nTimes=100):
+    def cubic_interpolation(self, points, nTimes=100):
         """
         Given a set of control points, return the
         cubic spline defined by the control points,
         sampled nTimes along the curve.
         """
-        cs = CubicSpline(x, y, bc_type = "clamped")
-        points = list(zip(*[cs(i) for i in range(nTimes)]))
+        time = list(range(len(points)))
+        timerange = np.linspace(0, len(points), nTimes)
+        print(timerange)
+
+        points = points.T
+
+
+        cs_x = CubicSpline(time, points[0], bc_type = "clamped")
+        cs_y = CubicSpline(time, points[1], bc_type = "clamped")
+        cs_z = CubicSpline(time, points[2], bc_type = "clamped")
+        points = [[float(cs_x(i)), float(cs_y(i)), float(cs_z(i))] for i in timerange]
 
         #TODO add your code here
         # Return 'nTimes' points per dimension in 'points' (typically a 2xN array),
         # sampled from a cubic spline defined by 'points' and a boundary condition.
         # You may use methods found in scipy.interpolate
 
-        return points[0], points[1]
+        return points
 
     # Task 3.1 Pushing
     def dockingToPosition(self, leftTargetAngle, rightTargetAngle, angularSpeed=0.005,

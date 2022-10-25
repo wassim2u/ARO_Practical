@@ -90,16 +90,26 @@ def getReadyForTask():
 
 
 def solution():
-    startPoint = [0.15, 0.1, 1]
-    sim.move_with_PD("LARM_JOINT5", startPoint - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
-    startPoint = [0.15, 0, 1]
-    sim.move_with_PD("LARM_JOINT5", startPoint - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
-    startPoint = [0.35, 0, 1]
-    sim.move_with_PD("LARM_JOINT5", startPoint - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
-    startPoint = [0.55, 0, 1]
-    sim.move_with_PD("LARM_JOINT5", startPoint - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
-    startPoint = [0.58, -0.05, 1]
-    sim.move_with_PD("LARM_JOINT5", startPoint - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
+
+    startPoint = sim.getJointPosition("LARM_JOINT5") + np.array([0, 0, 0.85])
+
+    points = np.array([startPoint, [0.15, 0.1, 1],[0.15, 0, 1],[0.35, 0, 1],[0.55, 0, 1], [0.58, -0.05, 1]])
+
+    points= sim.cubic_interpolation(points, nTimes = 20)
+    print(points)
+    for p in points:
+        sim.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,0], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
+
+    # startPoint = 
+    # 
+    # startPoint = 
+    # sim.move_with_PD("LARM_JOINT5", startPoint - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
+    # startPoint = 
+    # sim.move_with_PD("LARM_JOINT5", startPoint - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
+    # startPoint = 
+    # sim.move_with_PD("LARM_JOINT5", startPoint - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
+    # startPoint = 
+    # sim.move_with_PD("LARM_JOINT5", startPoint - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
 
 
 tableId, cubeId, targetId = getReadyForTask()
