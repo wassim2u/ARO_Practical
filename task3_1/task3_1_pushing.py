@@ -93,12 +93,12 @@ def solution():
 
     startPoint = sim.getJointPosition("LARM_JOINT5") + np.array([0, 0, 0.85])
 
-    points = np.array([startPoint, [0.15, 0.1, 1],[0.15, 0, 1],[0.35, 0, 1],[0.55, 0, 1], [0.58, -0.05, 1]])
+    points = np.array([startPoint, [0.15, 0.1, 0.95],[0.15, 0, 0.95],[0.35, 0, 0.95],[0.55, 0, 0.95], [0.55, -0.05, 0.95]])
 
-    points= sim.cubic_interpolation(points, nTimes = 20)
+    points= sim.cubic_interpolation(points, nTimes = 10)
     print(points)
     for p in points:
-        sim.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,0], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
+        sim.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,0,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
 
     # startPoint = 
     # 

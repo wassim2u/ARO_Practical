@@ -46,26 +46,26 @@ LARM_JOINT5_position_controller:
 
 # Position Controllers (Right arm) ---------------------------------------
 RARM_JOINT0_position_controller:
-  type: effort_controllers/JointPositionController
-  joint: RARM_JOINT0
-  pid: {p: 5.0, i: 5.0, d: 5.0}
+    type: effort_controllers/JointPositionController
+    joint: RARM_JOINT0
+    pid: {p: 30.0, i: 10.0, d: 15.0}
 RARM_JOINT1_position_controller:
   type: effort_controllers/JointPositionController
   joint: RARM_JOINT1
-  pid: {p: 15.0, i: 15.0, d: 15.0}
+  pid: {p: 300.0, i: 15.0, d: 40.0}
 RARM_JOINT2_position_controller:
   type: effort_controllers/JointPositionController
   joint: RARM_JOINT2
-  pid: {p: 10.0, i: 10.0, d: 10.0}
+  pid: {p: 200.0, i: 25.0, d: 25.0}
 RARM_JOINT3_position_controller:
   type: effort_controllers/JointPositionController
   joint: RARM_JOINT3
-  pid: {p: 10.0, i: 10.0, d: 10.0}
+  pid: {p: 30.0, i: 10.0, d: 5.0}
 RARM_JOINT4_position_controller:
   type: effort_controllers/JointPositionController
   joint: RARM_JOINT4
-  pid: {p: 5.0, i: 5.0, d: 5.0}
+  pid: {p: 60.0, i: 5.0, d: 2.5}
 RARM_JOINT5_position_controller:
   type: effort_controllers/JointPositionController
   joint: RARM_JOINT5
-  pid: {p: 2.5, i: 2.5, d: 2.5}
+  pid: {p: 1.0, i: 2.5, d: 1.0}
