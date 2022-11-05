@@ -469,7 +469,9 @@ class Simulation(Simulation_base):
                 
 
             jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
-
+            print("JACOBIAN SHAPE")
+            print(jacobian.shape)
+            print(jointNames)
             dq = np.linalg.pinv(jacobian)@dy
 
             q += dq
@@ -831,6 +833,7 @@ class Simulation(Simulation_base):
         # Iterate through all joints and update joint states using PD control.
         for i, joint in enumerate(targetJoints):
             # skip dummy joints (world to base joint)
+            print(joint)
             jointController = self.jointControllers[joint]
             if jointController == 'SKIP_THIS_JOINT':
                 continue
@@ -926,6 +929,78 @@ class Simulation(Simulation_base):
         for p in points:
             self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,0,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
 
+    def move_with_PD_multiple(self, endEffectors, targetPositions, speed=0.01, orientations=None,
+        threshold=1e-3, maxIter=3000, debug=False, verbose=False, startJoint ="base_to_dummy"):
+        """
+        Move joints using inverse kinematics solver and using PD control.
+        This method should update joint states using the torque output from the PD controller.
+        Return:
+            pltTime, pltDistance arrays used for plotting
+        """
+        
+        
+        targetStatess, jointNames, efDiffs, eflocations, pltTimes = self.inverseKinematics(endEffector=endEffectors[0], targetPosition=targetPositions[0], 
+                                                                orientation=orientations[0],
+                                                                interpolationSteps=20, #TODO: whats the  interpolation step here?
+                                                                threshold=threshold,
+                                                                startJoint="base_to_dummy"
+                                                                )
+        
+        targetStatess_2, jointNames_2, efDiffs_2, eflocations_2, pltTimes_2 = self.inverseKinematics(endEffector=endEffectors[1], targetPosition=targetPositions[1], 
+                                                                orientation=orientations[1],
+                                                                interpolationSteps=20, #TODO: whats the  interpolation step here?
+                                                                threshold=threshold,
+                                                                startJoint="base_to_dummy"
+                                                                )
+        
+        # targetStatess, jointNames, efDiffs, eflocations, pltTimes =        targetStatess_2, jointNames_2, efDiffs_2, eflocations_2, pltTimes_2   
+        print(targetStatess[-1].shape)
+
+        
+        print("Done with kinematics")
+
+        final = targetStatess[-1]
+        final = np.concatenate([targetStatess[-1], targetStatess_2[-1][3:]])
+        jointNames.extend(jointNames_2[3:])
+        print(final.shape)
+        # for i, targetStates in enumerate(targetStatess):
+            
+        visualShift = eflocations[-1]
+        collisionShift = [0,0,0]
+        inertiaShift = [0,0,0]
+
+        meshScale=[0.1,0.1,0.1]
+        visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[1,0,0,1],radius= 0.015, visualFramePosition=visualShift, meshScale=meshScale)
+
+        p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
+
+        for j in range(maxIter):
+    #while(np.linalg.norm(self.getJointPosition(endEffector) - targetPosition) > threshold):
+        
+            self.tick(final, jointNames)
+            # self.tick(targetStatess_2[-1], jointNames_2)
+
+            #print(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]))#eflocations[i]))
+            # if(np.linalg.norm(self.getJointPosition(endEffectors[0]) -  eflocations[-1]) < threshold):
+            #     print("BREAK YOUR KNEES")
+            #     break
+                
+            #print()
+            #   
+        print("DONE")
+        
+        #TODO add your code here
+        # Iterate through joints and use states from IK solver as reference states in PD controller.
+        # Perform iterations to track reference states using PD controller until reaching
+        # max iterations or position threshold.
+
+        # Hint: here you can add extra steps if you want to allow your PD
+        # controller to converge to the final target position after performing
+        # all IK iterations (optional).
+        
+        
+
+        return pltTimes, eflocations
     # Task 3.2 Grasping & Docking
     def clamp(self, leftTargetAngle, rightTargetAngle, angularSpeed=0.005, threshold=1e-1, maxIter=300, verbose=False):
         """A template function for you, you are free to use anything else"""
