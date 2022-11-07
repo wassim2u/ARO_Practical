@@ -102,20 +102,31 @@ def getReadyForTask():
 # -> TypeError: Simulation.tick() missing 2 required positional arguments: 'targetStates' and 'targetJoints'
 def solution():
     extraChestTrans =  np.array([0, 0, 0.267])
-    goalLeft1 = np.array([0.5, 0.08, 1.07])   #Getting to pickup point 
-    goalRight1 = np.array([0.5, -0.08, 1.07])  #Getting to pickup point
-    goalLeft2 = [] #Getting to drop point
-    goalRight2 = [] #Getting to drop point
+    goalLeft1 = np.array([0.5, 0.09, 1.07])   #Getting to pickup point 
+    goalRight1 = np.array([0.5, -0.0, 1.07])  #Getting to pickup point
+    
 
-    shiftToAvoidTableCollision = np.array([0,0,0.08])
+    translations = np.array([
+        [0,0,0.1],
+        [0,0,0.2],
+        [0,0.15,0.2],
+        [-0.10,0.35,0.2],
+        [-0.15,0.39,0.2],
+        [-0.15,0.39,0.08]
+    ])
+    goalLeft2 = translations + goalLeft1#Getting to drop point
+    goalRight2 = translations + goalRight1#Getting to drop point
+
+    
+    shiftToAvoidTableCollision = np.array([0,0,0.075])
     startPointL = sim.getJointPosition("LARM_JOINT5") + shiftToAvoidTableCollision  + np.array([0, 0, 0.85]) 
     startPointR = sim.getJointPosition("RARM_JOINT5")  + shiftToAvoidTableCollision  + np.array([0, 0, 0.85])   
 
     # points_left = sim.cubic_interpolation(points_left, nTimes = 3)
     # points_right= sim.cubic_interpolation(points_right, nTimes = 3)
     #
-    points_left = np.linspace(startPointL , goalLeft1 , 5)
-    points_right= np.linspace(startPointR , goalRight1 , 5)
+    points_left = np.linspace(startPointL , goalLeft1 , 2)
+    points_right= np.linspace(startPointR , goalRight1 , 2)
     print(points_right)
     for i in range(len(points_left)):
         p_l = points_left[i]
@@ -126,6 +137,21 @@ def solution():
         sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                     np.array(p_r) - np.array([0, 0, 0.85])],
                                   speed=0.01, orientations=[[0,1,0], [0,-1,0]], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
+
+
+    points_left =  goalLeft2
+    points_right=  goalRight2
+    points_left = sim.cubic_interpolation(points_left, nTimes = 15)
+    points_right= sim.cubic_interpolation(points_right, nTimes = 15)
+
+    for i in range(len(points_left)):
+        p_l = points_left[i]
+        p_r = points_right[i]
+
+        sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
+                                                                    np.array(p_r) - np.array([0, 0, 0.85])],
+                                  speed=0.01, orientations=[[0,1,0], [0,-1,0]], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
+
 
 
 tableId, cubeId, targetId = getReadyForTask()
