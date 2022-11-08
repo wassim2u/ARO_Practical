@@ -433,7 +433,7 @@ class Simulation(Simulation_base):
         #print(len(jointNames))
         efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
         
-        efOrientation = self.getJointOrientation(endEffector) 
+        efOrientation = self.getJointAxis(endEffector) 
         print(efOrientation)
         #Joint angles
         q = np.array([ jointAngles[val] for val in jointNames] ) 
@@ -491,6 +491,7 @@ class Simulation(Simulation_base):
             assert(jointNames== jointNames_2)
             #Calculate the new end effector position
             efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+            efOrientation = self.getJointAxis(endEffector) 
             # EFLocations.append(efPosition)
             
                 
@@ -961,6 +962,7 @@ class Simulation(Simulation_base):
         print("Done with kinematics")
 
         final = np.concatenate([targetStatess_2[-1], targetStatess[-1][3:]])
+        final[:3] = (targetStatess_2[-1][:3] + targetStatess[-1][:3]) / 2
         jointNames_2.extend(jointNames[3:])
         print(final.shape)
         # for i, targetStates in enumerate(targetStatess):

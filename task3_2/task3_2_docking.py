@@ -103,7 +103,7 @@ def getReadyForTask():
 def solution():
     extraChestTrans =  np.array([0, 0, 0.267])
     goalLeft1 = np.array([0.46, 0.09, 1.069])   #Getting to pickup point 
-    goalRight1 = np.array([0.46, -0.11, 1.069])  #Getting to pickup point
+    goalRight1 = np.array([0.46, -0.08, 1.069])  #Getting to pickup point
     
     # goalLeft1 = np.array([0.46, 0.0, 1.069])   #Getting to pickup point 
     # goalRight1 = np.array([0.46, -0.02, 1.069])  #Getting to pickup point
@@ -119,25 +119,40 @@ def solution():
     #     [-0.20,0.39,0.08],
     # ])
     
+    #  translations = np.array([
+    #     [0,0,0.13],
+    #     [-0.0,0.10,0.13],
+    #     [-0.0,0.20,0.13],
+    #     [-0.0,0.25,0.13],
+    #     [-0.0,0.30,0.13],
+    #     [-0.10,0.30,0.13],
+    #     [-0.10,0.39,0.13],
+    #     [-0.10,0.39,0.02],
+    # ])
+    
     translations = np.array([
-        [0,0,0.1],
-        [0,0,0.2],
-        [-0.22,0.00,0.2],
-        [-0.22,0.10,0.2],
-        [-0.22,0.20,0.2],
-        [-0.22,0.25,0.2],
-        [-0.22,0.30,0.2],
-        [-0.16,0.30,0.2],
-        [-0.16,0.30,0.2],
-        [-0.16,0.29,0.02],
-
+        [-0.16,0.32,0.20],
+        [-0.18,0.35,0.18],
+        [-0.18,0.35,0.02],
+        # [-0.17,0.39,0.05],
     ])
+    
+    # translations = np.array([
+    #     [0,0,0.2],
+    #     [-0.16,0.00,0.2],
+    #     [-0.16,0.35,0.2],
+    #     [-0.16,0.35,0.2],
+    #     [-0.12,0.35,0.2],
+    #     [-0.12,0.35,0.02],
+    # ])
     # translation_drop = np.array([
        
     # ])
     goalLeft2 = translations + goalLeft1#Getting to drop point
     goalRight2 = translations + goalRight1#Getting to drop point
 
+    print(goalLeft2)
+    # exit()
     # goalLeft2_drop = translation_drop + goalLeft1 #Getting to drop point
     # goalRight2_drop = translation_drop + goalRight1 #Getting to drop point
     
@@ -167,33 +182,45 @@ def solution():
         # sim.move_with_PD("LARM_JOINT5", np.array(p_l) -  np.array([0, 0, 0.85]) - extraChestTrans  , speed=0.01, orientation=[0,1,0], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "LARM_JOINT0")
         sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                     np.array(p_r) - np.array([0, 0, 0.85])],
-                                  speed=0.0, orientations=[[0,1,0], [0,-1,0]], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
+                                  speed=0.0, orientations=[[0,1,1], [0,-1,1]], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
 
     #Moving object stage
     points_left =  goalLeft2
     points_right=  goalRight2
-    # points_left = sim.cubic_interpolation(points_left, nTimes = 20)
-    # points_right= sim.cubic_interpolation(points_right, nTimes = 20)
+    # points_left = sim.cubic_interpolation(points_left, nTimes = 5)
+    # points_right= sim.cubic_interpolation(points_right, nTimes = 5)
+    orientations_l_step= np.linspace([0,1,1], [0,1,1],len(points_left))
+    orientations_r_step= np.linspace([0,-1,1], [0,-1,1],len(points_right))
 
     for i in range(len(points_left)):
         p_l = points_left[i]
         p_r = points_right[i]
-
+        orient_l = list(orientations_l_step[i])
+        orient_r = list(orientations_r_step[i])
         sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                     np.array(p_r) - np.array([0, 0, 0.85])],
-                                  speed=0.01, orientations=[[0,1,0], [0,-1,0]], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
+                                  speed=0.01, orientations=[orient_l, orient_r], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
 
-    # points_left =  goalLeft3
-    # points_right=  goalRight3
-    # # points_left = sim.cubic_interpolation(points_left, nTimes = 10)
-    # # points_right= sim.cubic_interpolation(points_right, nTimes = 10)
-    # for i in range(len(points_left)):
-    #     p_l = points_left[i]
-    #     p_r = points_right[i]
-
-    #     sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
-    #                                                                 np.array(p_r) - np.array([0, 0, 0.85])],
-    #                               speed=0.001, orientations=[[0,0,1], [0,0,1]], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
+    points_left =  [goalLeft3 for i in range(0,2)]
+    points_right=   [goalRight3 for i in range(0,2)]
+    # points_left = sim.cubic_interpolation(points_left, nTimes = 10)
+    # points_right= sim.cubic_interpolation(points_right, nTimes = 10)
+    orientations_l_step= np.linspace([0,1,1], [0,-1,1],len(points_left))
+    orientations_r_step= np.linspace([0,-1,1], [0,1,1],len(points_right))
+    # points_left = sim.cubic_interpolation(points_left, nTimes = 10)
+    # sim.move_with_PD("RARM_JOINT5", np.array(goalRight3) - np.array([0, 0, 0.85]) , speed=0.01, orientation=[0,0,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
+    # sim.move_with_PD("LARM_JOINT5", np.array(goalLeft3) - np.array([0, 0, 0.85]) , speed=0.01, orientation=[0,0,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
+  
+    # points_right= sim.cubic_interpolation(points_right, nTimes = 10)
+    for i in range(len(points_left)):
+        p_l = points_left[i]
+        p_r = points_right[i]
+        orient_l = list(orientations_l_step[i])
+        orient_r = list(orientations_r_step[i])
+        
+        sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
+                                                                    np.array(p_r) - np.array([0, 0, 0.85])],
+                                  speed=0.001,  orientations=[orient_l, orient_r], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
 
 
 
