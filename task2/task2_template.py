@@ -65,19 +65,22 @@ pltTime, pltTarget, pltTorque, pltTorqueTime, pltPosition, pltVelocity = \
 fig = plt.figure(figsize=(6, 8))
 
 plt.subplot(311)
-plt.plot(pltTime, pltPosition, color='blue')
-plt.plot(pltTime, pltTarget, color='magenta')
+plt.plot(pltTime, pltPosition, color='blue', label="Joint Position")
+plt.plot(pltTime, pltTarget, color='magenta', label="Target Position")
 plt.ylabel("Theta rads")
+leg = plt.legend(loc='upper right')
 
 plt.subplot(312)
-plt.plot(pltTime, pltPosition, color='blue')
-plt.plot(pltTime, pltVelocity, color='lightblue')
+plt.plot(pltTime, pltPosition, color='blue', label="Joint Position")
+plt.plot(pltTime, pltVelocity, color='lightblue', label="Joint Velocity")
 plt.ylabel("Velocity rads/s")
+leg = plt.legend(loc='lower right')
 
 plt.subplot(313)
-plt.plot(pltTime, pltTorque, color='orange')
+plt.plot(pltTime, pltTorque, color='orange', label="Torque")
 plt.xlabel("Time s")
 plt.ylabel("Torque N")
+leg = plt.legend(loc='lower right')
 
 plt.suptitle("Task2.2 Response of the controller", size=16)
 plt.tight_layout()
