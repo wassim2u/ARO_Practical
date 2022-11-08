@@ -717,18 +717,8 @@ class Simulation(Simulation_base):
             targetPos - target joint position \\
             targetVel - target joint velocity
         """
-        pltTorque = []
         
-        if('pos' not in self.jointsInfos[joint]):
-            self.jointsInfos[joint]['pos'] = self.getJointPos(joint)
-        if('vel' not in self.jointsInfos[joint]):
-            self.jointsInfos[joint]['vel'] = 0
-        self.jointsInfos[joint]['lastPos']   = self.jointsInfos[joint]['pos']
-        self.jointsInfos[joint]['pos']       = self.getJointPos(joint)
         
-        self.jointsInfos[joint]['lastVel']   = self.jointsInfos[joint]['vel']
-        self.jointsInfos[joint]['vel']       = (self.jointsInfos[joint]['pos'] - self.jointsInfos[joint]['lastPos']) / self.dt if self.dt >= 0.00001 else self.jointsInfos[joint]['lastVel']
-
         def toy_tick(x_ref, x_real, dx_ref, dx_real, integral):
             # loads your PID gains
             jointController = self.jointControllers[joint]
@@ -742,9 +732,7 @@ class Simulation(Simulation_base):
             
             ### To here ###
 
-            pltTorque.append(torque)
-
-            #print("TORQUE:", torque)
+            print("TORQUE:", torque)
 
             # send the manipulation signal to the joint
             self.p.setJointMotorControl2(
@@ -756,6 +744,7 @@ class Simulation(Simulation_base):
             # calculate the physics and update the world
             self.p.stepSimulation()
             time.sleep(self.dt)
+            return torque
 
         targetPosition, targetVelocity = float(targetPosition), float(targetVelocity)
         
@@ -765,9 +754,28 @@ class Simulation(Simulation_base):
         
         # logging for the graph
         pltTime, pltTarget, pltTorque, pltTorqueTime, pltPosition, pltVelocity = [], [], [], [], [], []
-        
-        while (abs(self.getJointPos(joint) - targetPosition) > 1e-3):
-            toy_tick(targetPosition, self.jointsInfos[joint]['pos'], targetVelocity, self.jointsInfos[joint]['vel'], integral=0)
+        timePassed = 0
+        torque = 0
+        while (abs(self.getJointPos(joint) - targetPosition) > 0.035):
+            if('pos' not in self.jointsInfos[joint]):
+                self.jointsInfos[joint]['pos'] = self.getJointPos(joint)
+            if('vel' not in self.jointsInfos[joint]):
+                self.jointsInfos[joint]['vel'] = 0
+            self.jointsInfos[joint]['lastPos']   = self.jointsInfos[joint]['pos']
+            self.jointsInfos[joint]['pos']       = self.getJointPos(joint)
+            
+            self.jointsInfos[joint]['lastVel']   = self.jointsInfos[joint]['vel']
+            self.jointsInfos[joint]['vel']       = (self.jointsInfos[joint]['pos'] - self.jointsInfos[joint]['lastPos'])/ self.dt if self.dt >= 0.00001 else self.jointsInfos[joint]['lastVel']
+
+            pltTime.append(timePassed) 
+            pltVelocity.append(self.jointsInfos[joint]['vel'])
+            pltPosition.append(self.jointsInfos[joint]['pos'])
+            pltTorque.append(torque)
+            pltTarget.append(targetPosition)
+
+            timePassed += self.dt
+            torque = toy_tick(targetPosition, self.jointsInfos[joint]['pos'], targetVelocity, self.jointsInfos[joint]['vel'], integral=0)
+            print(abs(self.getJointPos(joint) - targetPosition))
             
         return pltTime, pltTarget, pltTorque, pltTorqueTime, pltPosition, pltVelocity
 
@@ -919,18 +927,17 @@ class Simulation(Simulation_base):
         return points
 
     # Task 3.1 Pushing
-    def dockingToPosition(self, leftTargetAngle, rightTargetAngle, angularSpeed=0.005,
-            threshold=1e-1, maxIter=300, verbose=False):
+    def dockingToPosition(self):
         """A template function for you, you are free to use anything else"""
         startPoint = self.getJointPosition("LARM_JOINT5") + np.array([0, 0, 0.85])
 
-        points = np.array([startPoint, [0.15, 0.1, 0.95],[0.15, 0, 0.95],[0.35, 0, 0.95],[0.55, 0, 0.95], [0.55, -0.05, 0.95]])
+        points = np.array([startPoint, [0.15, 0.1, 1],[0.12, 0, 0.98],[0.35, -0.04, 0.98],[0.55, 0.02, 0.98], [0.60, 0.05, 0.98]])
 
-        points= self.cubic_interpolation(points, nTimes = 10)
+        #points= sim.cubic_interpolation(points, nTimes = 10)
         print(points)
         for p in points:
-            self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,0,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
-
+            self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
+        
     def move_with_PD_multiple(self, endEffectors, targetPositions, speed=0.01, orientations=None,
         threshold=1e-3, maxIter=3000, debug=False, verbose=False, startJoint ="base_to_dummy"):
         """
