@@ -804,7 +804,7 @@ class Simulation(Simulation_base):
         for j in range(maxIter):
     #while(np.linalg.norm(self.getJointPosition(endEffector) - targetPosition) > threshold):
         
-            self.tick(targetStatess[-1], jointNames)
+            self.tick(targetStatess[-1], jointNames, speed)
             #print(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]))#eflocations[i]))
             if(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]) < threshold):
                 print("BREAK YOUR KNEES")
@@ -828,7 +828,7 @@ class Simulation(Simulation_base):
         return pltTimes, eflocations
         
 
-    def tick(self, targetStates, targetJoints):
+    def tick(self, targetStates, targetJoints, speed = 0.0):
         """Ticks one step of simulation using PD control."""
         # Iterate through all joints and update joint states using PD control.
         for i, joint in enumerate(targetJoints):
@@ -856,8 +856,9 @@ class Simulation(Simulation_base):
             self.jointsInfos[joint]['lastPos']   = self.jointsInfos[joint]['pos']
             self.jointsInfos[joint]['pos']       = self.getJointPos(joint)
             
-            self.jointsInfos[joint]['lastVel']   = self.jointsInfos[joint]['vel']
-            self.jointsInfos[joint]['vel']       = (self.jointsInfos[joint]['pos'] - self.jointsInfos[joint]['lastPos']) / self.dt
+            self.jointsInfos[joint]['lastVel']   = self.jointsInfos[joint]['vel']        
+            self.jointsInfos[joint]['vel'] =  (self.jointsInfos[joint]['pos'] - self.jointsInfos[joint]['lastPos']) /self.dt 
+                
             torque = self.calculateTorque(  targetState, 
                                             self.jointsInfos[joint]['pos'],
                                             0, 
@@ -959,9 +960,8 @@ class Simulation(Simulation_base):
         
         print("Done with kinematics")
 
-        final = targetStatess[-1]
-        final = np.concatenate([targetStatess[-1], targetStatess_2[-1][3:]])
-        jointNames.extend(jointNames_2[3:])
+        final = np.concatenate([targetStatess_2[-1], targetStatess[-1][3:]])
+        jointNames_2.extend(jointNames[3:])
         print(final.shape)
         # for i, targetStates in enumerate(targetStatess):
             
@@ -977,7 +977,7 @@ class Simulation(Simulation_base):
         for j in range(maxIter):
     #while(np.linalg.norm(self.getJointPosition(endEffector) - targetPosition) > threshold):
         
-            self.tick(final, jointNames)
+            self.tick(final, jointNames_2, speed)
             # self.tick(targetStatess_2[-1], jointNames_2)
 
             #print(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]))#eflocations[i]))

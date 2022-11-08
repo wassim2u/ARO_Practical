@@ -102,29 +102,59 @@ def getReadyForTask():
 # -> TypeError: Simulation.tick() missing 2 required positional arguments: 'targetStates' and 'targetJoints'
 def solution():
     extraChestTrans =  np.array([0, 0, 0.267])
-    goalLeft1 = np.array([0.5, 0.09, 1.07])   #Getting to pickup point 
-    goalRight1 = np.array([0.5, -0.0, 1.07])  #Getting to pickup point
+    goalLeft1 = np.array([0.46, 0.09, 1.069])   #Getting to pickup point 
+    goalRight1 = np.array([0.46, -0.11, 1.069])  #Getting to pickup point
+    
+    # goalLeft1 = np.array([0.46, 0.0, 1.069])   #Getting to pickup point 
+    # goalRight1 = np.array([0.46, -0.02, 1.069])  #Getting to pickup point
     
 
+
+    # translations = np.array([
+    #     [0,0,0.1],
+    #     [0,0.30,0.2],
+    #     [0,0.30,0.2],
+    #     [-0.10,0.35,0.2],
+    #     [-0.15,0.39,0.2],
+    #     [-0.20,0.39,0.08],
+    # ])
+    
     translations = np.array([
         [0,0,0.1],
         [0,0,0.2],
-        [0,0.15,0.2],
-        [-0.10,0.35,0.2],
-        [-0.15,0.39,0.2],
-        [-0.15,0.39,0.08]
+        [-0.22,0.00,0.2],
+        [-0.22,0.10,0.2],
+        [-0.22,0.20,0.2],
+        [-0.22,0.25,0.2],
+        [-0.22,0.30,0.2],
+        [-0.16,0.30,0.2],
+        [-0.16,0.30,0.2],
+        [-0.16,0.29,0.02],
+
     ])
+    # translation_drop = np.array([
+       
+    # ])
     goalLeft2 = translations + goalLeft1#Getting to drop point
     goalRight2 = translations + goalRight1#Getting to drop point
+
+    # goalLeft2_drop = translation_drop + goalLeft1 #Getting to drop point
+    # goalRight2_drop = translation_drop + goalRight1 #Getting to drop point
+    
+    goalLeft3 =  goalLeft2[-1] + np.array(np.array([0,0.0,0]))
+
+    goalRight3 = goalRight2[-1] + np.array(np.array([0,-0.0,0])) #Getting to drop point
 
     
     shiftToAvoidTableCollision = np.array([0,0,0.075])
     startPointL = sim.getJointPosition("LARM_JOINT5") + shiftToAvoidTableCollision  + np.array([0, 0, 0.85]) 
-    startPointR = sim.getJointPosition("RARM_JOINT5")  + shiftToAvoidTableCollision  + np.array([0, 0, 0.85])   
+    # startPointR = sim.getJointPosition("RARM_JOINT5")  + shiftToAvoidTableCollision  + np.array([0, 0, 0.85])   
+    startPointR = sim.getJointPosition("RARM_JOINT5")  + shiftToAvoidTableCollision  + np.array([0, 0, 0.85])  
 
     # points_left = sim.cubic_interpolation(points_left, nTimes = 3)
     # points_right= sim.cubic_interpolation(points_right, nTimes = 3)
     #
+    #Picking up stage
     points_left = np.linspace(startPointL , goalLeft1 , 2)
     points_right= np.linspace(startPointR , goalRight1 , 2)
     print(points_right)
@@ -133,16 +163,17 @@ def solution():
         p_r = points_right[i]
 
         # sim.move_with_PD("RARM_JOINT5", np.array(p_r) - np.array([0, 0, 0.85]) -extraChestTrans , speed=0.01, orientation=[0,-1,0], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "RARM_JOINT0")
+        # sim.move_with_PD("RARM_JOINT5", np.array(p_r) - np.array([0, 0, 0.85]) , speed=0.01, orientation=[1,1,0], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
         # sim.move_with_PD("LARM_JOINT5", np.array(p_l) -  np.array([0, 0, 0.85]) - extraChestTrans  , speed=0.01, orientation=[0,1,0], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "LARM_JOINT0")
         sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                     np.array(p_r) - np.array([0, 0, 0.85])],
-                                  speed=0.01, orientations=[[0,1,0], [0,-1,0]], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
+                                  speed=0.0, orientations=[[0,1,0], [0,-1,0]], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
 
-
+    #Moving object stage
     points_left =  goalLeft2
     points_right=  goalRight2
-    points_left = sim.cubic_interpolation(points_left, nTimes = 15)
-    points_right= sim.cubic_interpolation(points_right, nTimes = 15)
+    # points_left = sim.cubic_interpolation(points_left, nTimes = 20)
+    # points_right= sim.cubic_interpolation(points_right, nTimes = 20)
 
     for i in range(len(points_left)):
         p_l = points_left[i]
@@ -151,6 +182,18 @@ def solution():
         sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                     np.array(p_r) - np.array([0, 0, 0.85])],
                                   speed=0.01, orientations=[[0,1,0], [0,-1,0]], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
+
+    # points_left =  goalLeft3
+    # points_right=  goalRight3
+    # # points_left = sim.cubic_interpolation(points_left, nTimes = 10)
+    # # points_right= sim.cubic_interpolation(points_right, nTimes = 10)
+    # for i in range(len(points_left)):
+    #     p_l = points_left[i]
+    #     p_r = points_right[i]
+
+    #     sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
+    #                                                                 np.array(p_r) - np.array([0, 0, 0.85])],
+    #                               speed=0.001, orientations=[[0,0,1], [0,0,1]], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
 
 
 
