@@ -929,11 +929,12 @@ class Simulation(Simulation_base):
     # Task 3.1 Pushing
     def dockingToPosition(self):
         """A template function for you, you are free to use anything else"""
+        time.sleep(5)
         startPoint = self.getJointPosition("LARM_JOINT5") + np.array([0, 0, 0.85])
 
-        points = np.array([startPoint, [0.15, 0.1, 1],[0.12, 0, 0.98],[0.35, -0.04, 0.98],[0.55, 0.02, 0.98], [0.60, 0.05, 0.98]])
+        points = np.array([startPoint, [0.15, 0.1, 1],[0.12, -0.01, 0.98],[0.35, -0.015, 0.98],[0.55, 0, 0.98], [0.60, 0., 0.98]])
 
-        #points= sim.cubic_interpolation(points, nTimes = 10)
+        #points= self.cubic_interpolation(points, nTimes = 10)
         print(points)
         for p in points:
             self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
