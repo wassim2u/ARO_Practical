@@ -158,7 +158,6 @@ def solution():
     global goalLeft3
     global goalRight3
     # goalLeft3 =  goalLeft2[-1] + np.array(np.array([0.1,0.05,-0.05]))
-
     # goalRight3 = goalRight2[-1] + np.array(np.array([0,-0.3,-0.02])) #Getting to drop point
 
     goalLeft3 =  np.linspace(goalLeft2[-1] + np.array([0,0.09,0]), goalLeft2[-1] + np.array(np.array([0.0,0.09,0.15])), 2 )
@@ -246,4 +245,4 @@ solution()
 ## remove this in final submission
 location, orientation = bullet_simulation.getBasePositionAndOrientation(cubeId)
 print("Final Distance: ",np.linalg.norm(location - finalTargetPos))
-print("Final Distance arm: ",np.linalg.norm( ((goalLeft3 + goalRight3)/2) - finalTargetPos))
+print("Final Distance arm: " , ( ((goalLeft3 + goalRight3)/2) - finalTargetPos) )

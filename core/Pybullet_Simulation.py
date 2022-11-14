@@ -415,6 +415,8 @@ class Simulation(Simulation_base):
         # TODO add your code here
         # Hint: return a numpy array which includes the reference angular
         # positions for all joints after performing inverse kinematics.
+        timePassed = 0
+
         if orientation==None:
             orientation = [0,0,0]
             # orientation = self.getJointOrientation(endEffector) 
@@ -441,9 +443,7 @@ class Simulation(Simulation_base):
         traj = [q]
         EFDif = [np.linalg.norm(efPosition - targetPosition)]
         EFLocations = [efPosition]
-        startTime = time.time()
-        pltTimes = [0]
-
+        pltTimes =[0]
         # -- Debug - Draw where the end effector starts in light blue
         print("Starting EF Position :" + str(efPosition))
         print("Starting EF Angle :" + str(efAngle))
@@ -492,9 +492,8 @@ class Simulation(Simulation_base):
             #Calculate the new end effector position
             efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
             efOrientation = self.getJointAxis(endEffector) 
-            # EFLocations.append(efPosition)
             
-                
+            # EFLocations.append(efPosition)
             
             
             #TODO: calculate the new end effector 
@@ -502,7 +501,7 @@ class Simulation(Simulation_base):
             #if np.linalg.norm(efPosition - currGoal) < threshold:
             #    break
             EFLocations.append(efPosition)
-            
+
             visualShift = efPosition
             collisionShift = [0,0,0]
             inertiaShift = [0,0,0]
@@ -513,7 +512,8 @@ class Simulation(Simulation_base):
             p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
 
             EFDif.append(np.linalg.norm(efPosition - targetPosition))
-            pltTimes.append(time.time() - startTime)
+            timePassed += self.dt
+            pltTimes.append(timePassed)
             
 
         #TODO: You should directly (re)set the joint positions to be the desired values using a method such as Simulation.p.resetJointState() or else
@@ -756,7 +756,7 @@ class Simulation(Simulation_base):
         pltTime, pltTarget, pltTorque, pltTorqueTime, pltPosition, pltVelocity = [], [], [], [], [], []
         timePassed = 0
         torque = 0
-        while (abs(self.getJointPos(joint) - targetPosition) > 0.035):
+        while (abs(self.getJointPos(joint) - targetPosition) > 0.034):
             if('pos' not in self.jointsInfos[joint]):
                 self.jointsInfos[joint]['pos'] = self.getJointPos(joint)
             if('vel' not in self.jointsInfos[joint]):
@@ -775,7 +775,7 @@ class Simulation(Simulation_base):
 
             timePassed += self.dt
             torque = toy_tick(targetPosition, self.jointsInfos[joint]['pos'], targetVelocity, self.jointsInfos[joint]['vel'], integral=0)
-            print(abs(self.getJointPos(joint) - targetPosition))
+            
             
         return pltTime, pltTarget, pltTorque, pltTorqueTime, pltPosition, pltVelocity
 
@@ -810,7 +810,7 @@ class Simulation(Simulation_base):
 
         p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
 
-        for j in range(maxIter):
+        for _ in range(maxIter):
     #while(np.linalg.norm(self.getJointPosition(endEffector) - targetPosition) > threshold):
         
             self.tick(targetStatess[-1], jointNames, speed)
@@ -842,7 +842,6 @@ class Simulation(Simulation_base):
         # Iterate through all joints and update joint states using PD control.
         for i, joint in enumerate(targetJoints):
             # skip dummy joints (world to base joint)
-            print(joint)
             jointController = self.jointControllers[joint]
             if jointController == 'SKIP_THIS_JOINT':
                 continue
@@ -984,19 +983,15 @@ class Simulation(Simulation_base):
 
         p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
 
-        for j in range(maxIter):
-    #while(np.linalg.norm(self.getJointPosition(endEffector) - targetPosition) > threshold):
-        
+        for _ in range(maxIter):        
             self.tick(final, jointNames_2, speed)
-            # self.tick(targetStatess_2[-1], jointNames_2)
-
-            #print(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]))#eflocations[i]))
-            # if(np.linalg.norm(self.getJointPosition(endEffectors[0]) -  eflocations[-1]) < threshold):
-            #     print("BREAK YOUR KNEES")
-            #     break
+            if(np.linalg.norm(self.getJointPosition(endEffectors[0]) - eflocations[-1]) < threshold
+               and 
+               np.linalg.norm(self.getJointPosition(endEffectors[1] - eflocations_2[-1] < threshold))
+            ):  
+                print("Break")
+                break
                 
-            #print()
-            #   
         print("DONE")
         
         #TODO add your code here

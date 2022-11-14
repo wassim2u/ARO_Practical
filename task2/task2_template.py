@@ -69,6 +69,8 @@ plt.plot(pltTime, pltPosition, color='blue', label="Joint Position")
 plt.plot(pltTime, pltTarget, color='magenta', label="Target Position")
 plt.ylabel("Theta rads")
 leg = plt.legend(loc='upper right')
+print("hello")
+print(pltPosition[-1] - pltTarget[-1])
 
 plt.subplot(312)
 plt.plot(pltTime, pltPosition, color='blue', label="Joint Position")
