@@ -47,11 +47,11 @@ robotConfigs = {
 sim = Simulation(pybulletConfigs, robotConfigs)
 
 # This is an example target (angular) position for the joint LARM_JOINT2
-task2_jointName = "LARM_JOINT2"
+task2_jointName = "LARM_JOINT1"
 task2_targetPosition = np.deg2rad(-45)  # joint (angular) position in radians
 task2_targetVelocity = 0.0  # joint (angular) velocity in radians per second
 verbose = False
-task2_figure_name = "task2_PD_response_elbow.png"
+task2_figure_name = "task2_PD_response_shoulder_ud.png"
 task2_savefig = True
 ### to here
 
@@ -82,7 +82,7 @@ plt.xlabel("Time s")
 plt.ylabel("Torque N")
 leg = plt.legend(loc='lower right')
 
-plt.suptitle("Task2.2 Response of the controller for elbow", size=16)
+plt.suptitle("Task2.2 Response of the controller for chest", size=16)
 plt.tight_layout()
 plt.subplots_adjust(left=0.15)
 
