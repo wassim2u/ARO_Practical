@@ -89,25 +89,12 @@ def getReadyForTask():
     return tableId, cubeId, targetId
 
 
-def solution(cubeID, targetID, plotting=False):
-
-    pltDifference, pltTimes = sim.dockingToPosition(cubeId, targetId, plotting)
-    if plotting: 
-        fig = plt.figure(figsize=(6, 4))
-        plt.plot(pltTimes, pltDifference, color='blue')
-        plt.xlabel("Time s")
-        plt.ylabel("Distance to target position")
-
-        plt.suptitle("task1 IK without PD", size=16)
-        plt.tight_layout()
-        plt.subplots_adjust(left=0.15)
-        plt.show()
-
-
+def solution():
+    sim.dockingToPosition()
 
 tableId, cubeId, targetId = getReadyForTask()
 
-solution(cubeId, targetId, plotting=False)
+solution()
 
     
 ## remove this in final submission

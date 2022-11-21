@@ -64,11 +64,9 @@ sim = Simulation(pybulletConfigs, robotConfigs, refVect=ref)
 # the base_to_waist translation.
 endEffector = "LARM_JOINT5"
 targetPosition = np.array([0.37, 0.23, 1.06385]) - np.array([0, 0, 0.85])  # x,y,z coordinates in world frame
-targetPosition = np.array([-0.37, 0.23, 1.06385]) - np.array([0, 0, 0.85])  # x,y,z coordinates in world frame
-
 targetOrientation = [0,0,1]
 # Example code. Feel free to modify
-
+# time.sleep(50)
 pltTime, pltEFPosition = sim.move_without_PD(endEffector, targetPosition, speed=0.01, orientation=targetOrientation, threshold=1e-3, maxIter=3000, debug=True, verbose=False, startJoint = "base_to_dummy")
 
 # jointAngles = sim.measureJointAngles()
