@@ -241,6 +241,7 @@ def solution():
 
 
 tableId, cubeId, targetId = getReadyForTask()
+time.sleep(50)
 solution()
 
 ## remove this in final submission

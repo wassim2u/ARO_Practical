@@ -90,7 +90,6 @@ def getReadyForTask():
 
 
 def solution():
-
     sim.dockingToPosition()
 
 tableId, cubeId, targetId = getReadyForTask()
