@@ -399,7 +399,7 @@ class Simulation(Simulation_base):
         
     # Task 1.2 Inverse Kinematics
 
-    def inverseKinematics(self, endEffector, targetPosition, orientation, interpolationSteps, threshold, startJoint):
+    def inverseKinematics(self, endEffector, targetPosition, orientation, interpolationSteps, threshold, startJoint, debug=False):
         """Your IK solver \\
         Arguments: \\
             endEffector: the jointName the end-effector \\
@@ -447,13 +447,15 @@ class Simulation(Simulation_base):
         # -- Debug - Draw where the end effector starts in light blue
         print("Starting EF Position :" + str(efPosition))
         print("Starting EF Angle :" + str(efAngle))
-        visualShift = efPosition
-        inertiaShift = [0,0,0]
+        if debug:
+            
+            visualShift = efPosition
+            inertiaShift = [0,0,0]
 
-        meshScale=[0.1,0.1,0.1]
-        visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[0,1,1,1],radius= 0.02, visualFramePosition=visualShift, meshScale=meshScale)
+            meshScale=[0.1,0.1,0.1]
+            visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[0,1,1,1],radius= 0.02, visualFramePosition=visualShift, meshScale=meshScale)
 
-        p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
+            p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
         # Compute the tiny changes in positions for the end effector to go towards the target
         stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)
         #TODO: Check whether we are meant to retrieve step orientations with linspace. Sti
@@ -501,15 +503,16 @@ class Simulation(Simulation_base):
             #if np.linalg.norm(efPosition - currGoal) < threshold:
             #    break
             EFLocations.append(efPosition)
+            
+            if debug:
+                visualShift = efPosition
+                collisionShift = [0,0,0]
+                inertiaShift = [0,0,0]
 
-            visualShift = efPosition
-            collisionShift = [0,0,0]
-            inertiaShift = [0,0,0]
+                meshScale=[0.1,0.1,0.1]
+                visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[0,1,0,1],radius= 0.005, visualFramePosition=visualShift, meshScale=meshScale)
 
-            meshScale=[0.1,0.1,0.1]
-            visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[0,1,0,1],radius= 0.005, visualFramePosition=visualShift, meshScale=meshScale)
-
-            p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
+                p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
 
             EFDif.append(np.linalg.norm(efPosition - targetPosition))
             timePassed += self.dt
@@ -772,7 +775,6 @@ class Simulation(Simulation_base):
             pltPosition.append(self.jointsInfos[joint]['pos'])
             pltTorque.append(torque)
             pltTarget.append(targetPosition)
-
             timePassed += self.dt
             torque = toy_tick(targetPosition, self.jointsInfos[joint]['pos'], targetVelocity, self.jointsInfos[joint]['vel'], integral=0)
             
@@ -791,7 +793,8 @@ class Simulation(Simulation_base):
                                                                 orientation=orientation,
                                                                 interpolationSteps=20, #TODO: whats the  interpolation step here?
                                                                 threshold=threshold,
-                                                                startJoint=startJoint
+                                                                startJoint=startJoint,
+                                                                debug = debug
                                                                 )
                         
         print("Done with kinematics")
@@ -926,18 +929,18 @@ class Simulation(Simulation_base):
         return points
 
     # Task 3.1 Pushing
-    def dockingToPosition(self):
-        """A template function for you, you are free to use anything else"""
+    def dockingToPosition(self, cubeID, targetID):
+        """A template function for you, you are free to use anything else"""        
         time.sleep(5)
-        startPoint = self.getJointPosition("LARM_JOINT5") + np.array([0, 0, 0.85])
-
+        startPoint = self.getJointPosition("LARM_JOINT5") + np.array([0, 0, 0.85])         
         points = np.array([startPoint, [0.15, 0.1, 1],[0.12, -0.01, 0.98],[0.35, -0.015, 0.98],[0.55, 0, 0.98], [0.60, 0., 0.98]])
-
+        
         #points= self.cubic_interpolation(points, nTimes = 10)
         print(points)
         for p in points:
             self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
-        
+
+
     def move_with_PD_multiple(self, endEffectors, targetPositions, speed=0.01, orientations=None,
         threshold=1e-3, maxIter=3000, debug=False, verbose=False, startJoint ="base_to_dummy"):
         """
@@ -952,14 +955,16 @@ class Simulation(Simulation_base):
                                                                 orientation=orientations[0],
                                                                 interpolationSteps=20, #TODO: whats the  interpolation step here?
                                                                 threshold=threshold,
-                                                                startJoint="base_to_dummy"
+                                                                startJoint="base_to_dummy",
+                                                                debug=debug
                                                                 )
         
         targetStatess_2, jointNames_2, efDiffs_2, eflocations_2, pltTimes_2 = self.inverseKinematics(endEffector=endEffectors[1], targetPosition=targetPositions[1], 
                                                                 orientation=orientations[1],
                                                                 interpolationSteps=20, #TODO: whats the  interpolation step here?
                                                                 threshold=threshold,
-                                                                startJoint="base_to_dummy"
+                                                                startJoint="base_to_dummy",
+                                                                debug=debug
                                                                 )
         
         # targetStatess, jointNames, efDiffs, eflocations, pltTimes =        targetStatess_2, jointNames_2, efDiffs_2, eflocations_2, pltTimes_2   
@@ -973,15 +978,15 @@ class Simulation(Simulation_base):
         jointNames_2.extend(jointNames[3:])
         print(final.shape)
         # for i, targetStates in enumerate(targetStatess):
-            
-        visualShift = eflocations[-1]
-        collisionShift = [0,0,0]
-        inertiaShift = [0,0,0]
+        if debug: 
+            visualShift = eflocations[-1]
+            collisionShift = [0,0,0]
+            inertiaShift = [0,0,0]
 
-        meshScale=[0.1,0.1,0.1]
-        visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[1,0,0,1],radius= 0.015, visualFramePosition=visualShift, meshScale=meshScale)
+            meshScale=[0.1,0.1,0.1]
+            visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[1,0,0,1],radius= 0.015, visualFramePosition=visualShift, meshScale=meshScale)
 
-        p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
+            p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
 
         for _ in range(maxIter):        
             self.tick(final, jointNames_2, speed)

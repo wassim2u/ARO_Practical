@@ -89,12 +89,27 @@ def getReadyForTask():
     return tableId, cubeId, targetId
 
 
-def solution():
+def solution(cubeID, targetID, plotting=False):
 
-    sim.dockingToPosition()
+    pltDifference, pltTimes = sim.dockingToPosition(cubeId, targetId, plotting)
+    if plotting: 
+        fig = plt.figure(figsize=(6, 4))
+        plt.plot(pltTimes, pltDifference, color='blue')
+        plt.xlabel("Time s")
+        plt.ylabel("Distance to target position")
+
+        plt.suptitle("task1 IK without PD", size=16)
+        plt.tight_layout()
+        plt.subplots_adjust(left=0.15)
+        plt.show()
+
+
 
 tableId, cubeId, targetId = getReadyForTask()
-solution()
+
+solution(cubeId, targetId, plotting=False)
+
+    
 ## remove this in final submission
 location, orientation = bullet_simulation.getBasePositionAndOrientation(cubeId)
 print("Final Distance: ",np.linalg.norm(location - finalTargetPos))

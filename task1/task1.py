@@ -64,6 +64,8 @@ sim = Simulation(pybulletConfigs, robotConfigs, refVect=ref)
 # the base_to_waist translation.
 endEffector = "LARM_JOINT5"
 targetPosition = np.array([0.37, 0.23, 1.06385]) - np.array([0, 0, 0.85])  # x,y,z coordinates in world frame
+targetPosition = np.array([-0.37, 0.23, 1.06385]) - np.array([0, 0, 0.85])  # x,y,z coordinates in world frame
+
 targetOrientation = [0,0,1]
 # Example code. Feel free to modify
 

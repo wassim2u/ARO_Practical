@@ -160,8 +160,8 @@ def solution():
     # goalLeft3 =  goalLeft2[-1] + np.array(np.array([0.1,0.05,-0.05]))
     # goalRight3 = goalRight2[-1] + np.array(np.array([0,-0.3,-0.02])) #Getting to drop point
 
-    goalLeft3 =  np.linspace(goalLeft2[-1] + np.array([0,0.09,0]), goalLeft2[-1] + np.array(np.array([0.0,0.09,0.15])), 2 )
-    goalRight3 =  np.linspace(goalRight2[-1] + np.array([0,-0.09,0]), goalRight2[-1] + np.array(np.array([0,-0.09,0.15])), 2)
+    goalLeft3 =  np.linspace(goalLeft2[-1] + np.array([0,0.09,0]), goalLeft2[-1] + np.array(np.array([0.0,0.09,0.10])), 2 )
+    goalRight3 =  np.linspace(goalRight2[-1] + np.array([0,-0.09,0]), goalRight2[-1] + np.array(np.array([0,-0.09,0.10])), 2)
 
     shiftToAvoidTableCollision = np.array([0,0,0.075])
     startPointL = sim.getJointPosition("LARM_JOINT5") + shiftToAvoidTableCollision  + np.array([0, 0, 0.85]) 
@@ -174,6 +174,8 @@ def solution():
     #Picking up stage
     points_left = np.linspace(startPointL , goalLeft1 , 2)
     points_right= np.linspace(startPointR , goalRight1 , 2)
+    # points_left = sim.cubic_interpolation(points_left, nTimes = 5)
+    # points_right= sim.cubic_interpolation(points_right, nTimes = 5)
     print(points_right)
     for i in range(len(points_left)):
         p_l = points_left[i]
@@ -184,7 +186,7 @@ def solution():
         # sim.move_with_PD("LARM_JOINT5", np.array(p_l) -  np.array([0, 0, 0.85]) - extraChestTrans  , speed=0.01, orientation=[0,1,0], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "LARM_JOINT0")
         sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                     np.array(p_r) - np.array([0, 0, 0.85])],
-                                  speed=0.0, orientations=[[0,1,1], [0,-1,1]], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
+                                  speed=0.0, orientations=[[0,1,1], [0,-1,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
 
     #Moving object stage
     points_left =  goalLeft2
@@ -201,14 +203,14 @@ def solution():
         orient_r = list(orientations_r_step[i])
         sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                     np.array(p_r) - np.array([0, 0, 0.85])],
-                                  speed=0.01, orientations=[orient_l, orient_r], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
+                                  speed=0.01, orientations=[orient_l, orient_r], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
 
     # points_left =  [goalLeft3 for i in range(0,2)]
     # points_right=   [goalRight3 for i in range(0,2)]
     points_left =  goalLeft3
     points_right=   goalRight3
-    # points_left = sim.cubic_interpolation(points_left, nTimes = 10)
-    # points_right= sim.cubic_interpolation(points_right, nTimes = 10)
+    # points_left = sim.cubic_interpolation(points_left, nTimes = 5)
+    # points_right= sim.cubic_interpolation(points_right, nTimes = 5)
     # orientations_l_step= np.linspace([0,1,1], [-1,0,1],len(points_left))
     # orientations_r_step= np.linspace([0,-1,1], [-1,0,1],len(points_right))
 
@@ -226,7 +228,7 @@ def solution():
         
         sim.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                     np.array(p_r) - np.array([0, 0, 0.85])],
-                                  speed=0.001,  orientations=[orient_l, orient_r], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "")
+                                  speed=0.001,  orientations=[orient_l, orient_r], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
     
     
     # sim.move_with_PD("RARM_JOINT5", np.array(goalRight3[-1]) - np.array([0, 0, 0.85]) , speed=0.01, orientation=[0,0,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
@@ -245,4 +247,5 @@ solution()
 ## remove this in final submission
 location, orientation = bullet_simulation.getBasePositionAndOrientation(cubeId)
 print("Final Distance: ",np.linalg.norm(location - finalTargetPos))
-print("Final Distance arm: " , ( ((goalLeft3 + goalRight3)/2) - finalTargetPos) )
+print("Final Distance arm: " , ( ((goalLeft3[0] + goalRight3[0])/2) - finalTargetPos) )
+print("Final Distance arm: " , ( np.linalg.norm(((goalLeft3[0] + goalRight3[0])/2) - finalTargetPos) ))
