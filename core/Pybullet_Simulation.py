@@ -387,8 +387,8 @@ class Simulation(Simulation_base):
         EFLocations = [efPosition]
         pltTimes =[0]
         # -- Debug - Draw where the end effector starts in light blue
-        print("Starting EF Position :" + str(efPosition))
-        print("Starting EF Angle :" + str(efAngle))
+        #print("Starting EF Position :" + str(efPosition))
+        #print("Starting EF Angle :" + str(efAngle))
         if debug:
             
             visualShift = efPosition
@@ -457,10 +457,8 @@ class Simulation(Simulation_base):
             timePassed += self.dt
             pltTimes.append(timePassed)
             
-
-        #TODO: You should directly (re)set the joint positions to be the desired values using a method such as Simulation.p.resetJointState() or else
         
-        print(efOrientation)
+        #print(efOrientation)
         return np.array(traj), jointNames, EFDif, EFLocations, pltTimes
 
 
@@ -768,7 +766,7 @@ class Simulation(Simulation_base):
                and 
                np.linalg.norm(self.getJointPosition(endEffectors[1] - eflocations_2[-1] < threshold))
             ):  
-                print("Break")
+                #print("Break")
                 break
                 
             #print()
