@@ -44,13 +44,13 @@ class Simulation(Simulation_base):
             'LARM_JOINT2': 'LARM_JOINT3',
             'LARM_JOINT3': 'LARM_JOINT4',
             'LARM_JOINT4': 'LARM_JOINT5',
-            'LARM_JOINT5': 'LARM',
+            'LARM_JOINT5': None, 
             'RARM_JOINT0': 'RARM_JOINT1',
             'RARM_JOINT1': 'RARM_JOINT2',
             'RARM_JOINT2': 'RARM_JOINT3',
             'RARM_JOINT3': 'RARM_JOINT4',
             'RARM_JOINT4': 'RARM_JOINT5',
-            'RARM_JOINT5': 'RARM',
+            'RARM_JOINT5': None
             #'RHAND'      : None, # optional
             #'LHAND'      : None # optional
         }
@@ -104,12 +104,25 @@ class Simulation(Simulation_base):
         }
 
     def measureJointAngles(self):
+        """ Retrieve the revolute positions of all joints into a dictionary
+
+        Returns:
+            jointPos (dict): dictionary of joint names mapped to the angle joints in radians 
+        """
         jointPos = {}
         for key in self.jointRotationAxis.keys():
             jointPos[key] = self.getJointPos(key)
         return jointPos
 
     def calculateTransformationMatrices(self, jointPos):
+        """ Returns the homogeneous transformation matrices for each joint as a dictionary of matrices.
+        i.e) Assume we simplify our robot model to one arm joints of A,B,C with 0 as the origin, we define the transformation matrix T for A as T_{0->A}, for B as T_{A->B}, and C as T_{B->C}.
+        
+        Args:
+            jointPos (dict): Contains the joints current angles in radians mapped to its respective joint in the dictionary.
+        Returns:
+            transformationMatrices (dict) : dictionary of joint transformation matricies T for all the joints defined in the robot.
+        """
         transformationMatrices = {}
         for key, val in self.frameTranslationFromParent.items():
             theta = jointPos[key]
@@ -122,23 +135,29 @@ class Simulation(Simulation_base):
 
         return transformationMatrices
         
+
+    def getNextJoint(self, jointName, finalJointName):
+        """Gets the next consecutive joint of the robot. If the current given joint is a chest joint, we rely on the target joint to help determine the correct successor.
+        This allows us to piece together the kinematics chain for the computation of Forward Kinematics.
         
-    def getNextJoint(self, jointName, finalJoint):
-        if "CHEST_JOINT0" in jointName and "LARM" in finalJoint:
+        Args:
+            jointName (str): represents the current joint 
+            finalJointName (str): represents the final joint.
+        Returns:
+            str: successor joint name, if any.
+        """
+        if "CHEST_JOINT0" in jointName and "LARM" in finalJointName:
             return self.jointMap["CHEST_JOINT0_LEFT"]
-        elif "CHEST_JOINT0" in jointName and "RARM" in finalJoint:
+        elif "CHEST_JOINT0" in jointName and "RARM" in finalJointName:
             return self.jointMap["CHEST_JOINT0_RIGHT"]
-        elif "CHEST_JOINT0" in jointName and "HEAD" in finalJoint:
+        elif "CHEST_JOINT0" in jointName and "HEAD" in finalJointName:
             return self.jointMap["CHEST_JOINT0_HEAD"]
         elif "base_to_waist" == jointName:
             return "CHEST_JOINT0"          
         else:
-           
+            
             nextJoint =  self.jointMap[jointName]
-            if nextJoint is None:
-                return jointName
-            else:
-                return nextJoint
+            return nextJoint
 
     def getJointRotationalMatrix(self, jointName=None, theta=None):
         """
@@ -148,99 +167,54 @@ class Simulation(Simulation_base):
         if jointName == None:
             raise Exception("[getJointRotationalMatrix] \
                 Must provide a joint in order to compute the rotational matrix!")
-        # TODO modify from here
         # Hint: the output should be a 3x3 rotational matrix as a numpy array
-        #return np.matrix()
         rotationAxis = self.jointRotationAxis[jointName]
 
         cos = np.cos(theta)
         sin = np.sin(theta)
-        n_0 = rotationAxis[0]
-        n_1 = rotationAxis[1]
-        n_2 = rotationAxis[2]
+        n_0 = rotationAxis[0] # - first element of the rotation axis
+        n_1 = rotationAxis[1] # - second element of the rotation axis
+        n_2 = rotationAxis[2] # - third element of the rotation axis
 
         R =     np.array([  [cos+(n_0**2)*(1-cos),       n_0*n_1*(1-cos)-n_2*sin,   n_0*n_2*(1-cos) + n_1*sin   ],
                             [n_0*n_1*(1-cos) + n_2*sin,  cos+(n_1**2)*(1-cos),      n_1*n_2*(1-cos)-n_0*sin     ],
                             [n_0*n_2*(1-cos)-n_1*sin,    n_1*n_2*(1-cos) + n_0*sin, cos+(n_2**2)*(1-cos)        ]])
         
-        # R_x = np.array([[1, 0,              0             ],
-        #                 [0, np.cos(theta),  -np.sin(theta)],
-        #                 [0, np.sin(theta),  np.cos(theta) ]])
-
-        # R_y = np.array([[np.cos(theta),  0, np.sin(theta)],
-        #                 [0,              1, 0            ],
-        #                 [-np.sin(theta), 0, np.cos(theta)]])
-
-        # R_z = np.array([[np.cos(theta), -np.sin(theta), 0],
-        #                 [np.sin(theta), np.cos(theta),  0],
-        #                 [0,             0,              1]])
-        
-
-        # rotationAxis = self.jointRotationAxis[jointName]
-        # R = np.identity(3)
-        # #print(rotationAxis)
-        # #if not np.any(rotationAxis):
-        # #     return np.zeros((3,3))
-        # if(rotationAxis[2]):
-        #     R = R @ R_z
-        # elif(rotationAxis[1]):
-        #     R = R @ R_y
-        # elif(rotationAxis[0]):
-        #     R = R @ R_x
-        # else:
-        #     R = np.zeros((3,3))
-
         return R
 
-    def getTransformationMatrices(self):
+    def forwardKinematics(self, finalJointName, jointPos, startJoint="base_to_dummy"):
         """
-            Returns the homogeneous transformation matrices for each joint as a dictionary of matrices.
-        """
-        transformationMatrices = {}
-        # TODO modify from here
-        # Hint: the output should be a dictionary with joint names as keys and
-        # their corresponding homogeneous transformation matrices as values.
-        for key, val in self.frameTranslationFromParent.items():
-            theta = self.getJointPos(key)
-            R = self.getJointRotationalMatrix(key, theta)
-            
-            R = np.vstack((R, np.array([[0,0,0]])))
-            R = np.hstack((R, np.transpose(np.array([np.append(val, 1)]))))
+        Compute the forward kinematics for all joints in the kinematic chain up until the joint of interest which is the end effector.
 
+        Args:
+            finalJointName (str): The name of the end effector, which would be our final joint that we are interested in its forward kinematics..
+            jointPos (dict): The dictionary of joints to their revolute joint positions in radians 
+            startJoint (str, optional): The starting joint of where we want to compute the FK from. Defaults to "base_to_dummy" joint.
 
-            
-            transformationMatrices[key] = R
-        return transformationMatrices
-    
-    
-    
-    
-
-    def forwardKinematics(self, jointName, jointPos, startJoint="base_to_dummy"):
+        Returns:  (list,list)
+            fkMatrices: list of the resulting forward kinematics for each joint.
+            jointNames: list of joint names whose forward kinematics are computed. The order of this list corresponds respectively to the list of forward kinematic matricies, 
+                            with the end effector joint being at the end.
         """
-            Returns the position and rotation matrix of a given joint using Forward Kinematics
-            according to the topology of the Nextage robot.
-        """
-        htms = self.calculateTransformationMatrices(jointPos)
+        fkMatrices = [] # List of computed forward kinematics, for each joint that are part of the kinematic chain to the final joint
+        jointNames = [] # List of joint names that are part of the kinematic chain to the final joint
+        htms = self.calculateTransformationMatrices(jointPos) #Calculate the homogenous transformation matricies
         
-
-        fkMatrices = []
-        jointNames = []
-        # current joint and its transformation matrix
+        # Include the start joint as current joint and its transformation matrix
         htm = htms[startJoint]
         fkMatrices.append(htm)
         jointNames.append(startJoint)
-        nextJoint = self.getNextJoint(startJoint, jointName)
-
-        while nextJoint != jointName:
-            # get next joint in kinematic chain and compute FK for it
-
+        # get next joint in kinematic chain 
+        nextJoint = self.getNextJoint(startJoint, finalJointName)
+        while nextJoint != finalJointName:
+            #Compute FK for the joint as a result of homogenous matrix multiplications of all the previous joints up to the current joint
             htm =  htm @htms[nextJoint] 
             fkMatrices.append(htm)
             jointNames.append(nextJoint)
+            # get next joint in kinematic chain 
+            nextJoint = self.getNextJoint(nextJoint, finalJointName)
 
-            nextJoint = self.getNextJoint(nextJoint, jointName)
-
+        # Include the final specified joint name's FK
         htm =  htm @htms[nextJoint] 
         fkMatrices.append(htm)
         jointNames.append(nextJoint)
@@ -256,9 +230,9 @@ class Simulation(Simulation_base):
         # do FK, and extract position and rotation from the last link in the chain
         jointMatrices, _ = self.forwardKinematics(jointName, self.measureJointAngles())
         jointMatrix = jointMatrices[-1]
-        p_i, a_i = self.extractPositionAndAngle(jointMatrix)
+        p_i, r_i = self.extractPositionAndRotation(jointMatrix)
 
-        return p_i, a_i
+        return p_i, r_i
 
 
     def getJointPosition(self, jointName):
@@ -277,29 +251,36 @@ class Simulation(Simulation_base):
         return np.array(self.getJointLocationAndOrientation(jointName)[1] @ self.jointRotationAxis[jointName]).squeeze()
 
     def jacobianMatrix(self, endEffector, fkMatrices, jointNames):
-        """Calculate the Jacobian Matrix for the Nextage Robot."""
+        """Calculate the Jacobian Matrix for the Nextage Robot.
+
+        Args:
+            endEffector (str): end effector to compute the jacobian matrix for.
+            fkMatrices (list): list of forward kinematics for each joint (that is part of the kinematic chain to the end effector)
+            jointNames (list): list of joint names
+
+        Returns:
+            ndarray: 6xN jacobian matrix, where N is the number of joints determined by the given arguments of the kinematic chain (i.e fkMatrices or jointNames)
+                     and our joint of interest i.e) end effector.
+        """
         
-        # based on pseudocode in lectures
-        p_eff, a_eff = self.extractPositionAndAngle(fkMatrices[-1])
-        a_eff = a_eff@(self.jointRotationAxis[endEffector]) 
-        #assert(self.getJointPosition(endEffector), p_eff)
-        #assert(self.getJointAxis(endEffector), a_eff)
+        # Retrieve the position and rotation axes of the end effector
+        p_eff, r_eff = self.extractPositionAndRotation(fkMatrices[-1])
+        a_eff = r_eff@(self.jointRotationAxis[endEffector])  #Retrieves rotation axes
 
         jacobian = []
         
-        # for each joint, calculate its position and vector jacobian
-        # results in 6xN matrix 
-        for idx, jointMatrix in enumerate(fkMatrices):
-            #Ensure we dont compute the same end effector. 
+        # for each joint i, calculate its position and vector jacobian.
+        for i, jointMatrix in enumerate(fkMatrices):
             
-            p_i, a_i = self.extractPositionAndAngle(jointMatrix)
-            a_i = a_i@(self.jointRotationAxis[jointNames[idx]])
+            p_i, r_i = self.extractPositionAndRotation(jointMatrix)
+            a_i = r_i@(self.jointRotationAxis[jointNames[i]])
             
-            jacobian_position = np.cross(a_i, p_eff - p_i)
-            jacobian_vector= np.cross(a_i, a_eff) 
+            jacobian_position = np.cross(a_i, p_eff - p_i) # Calculate the position increment
+            jacobian_vector= np.cross(a_i, a_eff)  # Calculate the orientation increment
 
             jacobian.append(np.hstack((jacobian_position, jacobian_vector)))
-
+       
+        # results in 6xN matrix 
         return np.array(jacobian).T
 
 
@@ -313,9 +294,9 @@ class Simulation(Simulation_base):
 
         jointMatrices, _ = self.forwardKinematics(jointName, self.measureJointAngles())
         jointMatrix = jointMatrices[-1]
-        p_i, a_i = self.extractPositionAndAngle(jointMatrix)
+        p_i, r_i = self.extractPositionAndRotation(jointMatrix)
 
-        return p_i, a_i
+        return p_i, r_i
     
 
     def getJointPosition(self, jointName):
@@ -337,12 +318,19 @@ class Simulation(Simulation_base):
     
     ################# Helper Functions ################
     
-    def extractPositionAndAngle(self, jointMatrix):
-        a_i = jointMatrix[:3,:3]
+    def extractPositionAndRotation(self, jointMatrix):
+        """Extracts the 3x1 translation vector and the 3x3 rotation matrix from the 4x4 homogenous transformation matrix
 
+        Args:
+            jointMatrix (ndarray): 4x4 homogenous transformation matrix of a joint
+
+        Returns: (ndarray, ndarray)
+            p_i: 3x1 position matrix
+            r_i: 3x3 rotation matrix
+        """
         p_i = jointMatrix[:3,3]
-
-        return p_i, a_i
+        r_i = jointMatrix[:3,:3]
+        return p_i, r_i
         
         
     # Task 1.2 Inverse Kinematics
@@ -374,7 +362,7 @@ class Simulation(Simulation_base):
 
         fkMatrices, jointNames = self.forwardKinematics(endEffector, jointAngles, startJoint)
 
-        efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+        efPosition, efAngle = self.extractPositionAndRotation(fkMatrices[-1])
         
         efOrientation = self.getJointAxis(endEffector) 
         #print(efOrientation)
@@ -431,7 +419,7 @@ class Simulation(Simulation_base):
 
             assert(jointNames== jointNames_2)
             #Calculate the new end effector position
-            efPosition, efAngle = self.extractPositionAndAngle(fkMatrices[-1])
+            efPosition, efAngle = self.extractPositionAndRotation(fkMatrices[-1])
             efOrientation = self.getJointAxis(endEffector) 
             
             # EFLocations.append(efPosition)
