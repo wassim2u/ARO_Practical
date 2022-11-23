@@ -678,8 +678,8 @@ class Simulation(Simulation_base):
         cubic spline defined by the control points,
         sampled nTimes along the curve.
         """
-        time = list(np.arange(0,nTimes, 2))
-        timerange = np.linspace(0, len(points), nTimes)
+        time = np.linspace(0, nTimes, len(points))
+        timerange = np.linspace(0, nTimes, nTimes)
         #print(timerange)
 
         points = points.T
