@@ -191,11 +191,18 @@ def solution():
     #Moving object stage
     points_left =  goalLeft2
     points_right=  goalRight2
-    # points_left = sim.cubic_interpolation(points_left, nTimes = 5)
-    # points_right= sim.cubic_interpolation(points_right, nTimes = 5)
+    print("INITIAL")
+    print(points_right)
+    print("WITH CUBIC HELP ME")
+    points_left = sim.cubic_interpolation(points_left, nTimes = 10)
+    points_right= sim.cubic_interpolation(points_right, nTimes = 10)
+    print(points_right)
     orientations_l_step= np.linspace([0,1,1], [0,1,1],len(points_left))
     orientations_r_step= np.linspace([0,-1,1], [0,-1,1],len(points_right))
-
+    # plt.figure()
+    # plt.scatter(goalRight2[:,0], goalRight2[:,1])
+    # plt.plot(np.linspace(0, len(goalRight2), 5), points_right)
+    # plt.show()
     for i in range(len(points_left)):
         p_l = points_left[i]
         p_r = points_right[i]
@@ -242,6 +249,9 @@ def solution():
 
 
 tableId, cubeId, targetId = getReadyForTask()
+
+print(bullet_simulation.getBasePositionAndOrientation(cubeId))
+print(bullet_simulation.getBasePositionAndOrientation(targetId))
 solution()
 
 ## remove this in final submission
@@ -249,3 +259,6 @@ location, orientation = bullet_simulation.getBasePositionAndOrientation(cubeId)
 print("Final Distance: ",np.linalg.norm(location - finalTargetPos))
 print("Final Distance arm: " , ( ((goalLeft3[0] + goalRight3[0])/2) - finalTargetPos) )
 print("Final Distance arm: " , ( np.linalg.norm(((goalLeft3[0] + goalRight3[0])/2) - finalTargetPos) ))
+
+print(bullet_simulation.getBasePositionAndOrientation(cubeId))
+print(bullet_simulation.getBasePositionAndOrientation(targetId))

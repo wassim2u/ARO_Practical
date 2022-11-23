@@ -678,17 +678,18 @@ class Simulation(Simulation_base):
         cubic spline defined by the control points,
         sampled nTimes along the curve.
         """
-        time = list(range(len(points)))
+        time = list(np.arange(0,nTimes, 2))
         timerange = np.linspace(0, len(points), nTimes)
         #print(timerange)
 
         points = points.T
 
-        cs_x = CubicSpline(time, points[0], bc_type = "clamped")
-        cs_y = CubicSpline(time, points[1], bc_type = "clamped")
-        cs_z = CubicSpline(time, points[2], bc_type = "clamped")
+        cs_x = CubicSpline(time, points[0], bc_type = "natural")
+        cs_y = CubicSpline(time, points[1], bc_type = "natural")
+        cs_z = CubicSpline(time, points[2], bc_type = "natural")
         points = [[float(cs_x(i)), float(cs_y(i)), float(cs_z(i))] for i in timerange]
 
+    
         return points
 
     # Task 3.1 Pushing
