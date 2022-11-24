@@ -790,12 +790,12 @@ class Simulation(Simulation_base):
         ])
         translations = self.cubic_interpolation(translations, 8)
     
-        goalLeft2 = translations + goalLeft1#Getting to drop point
-        goalRight2 = translations + goalRight1#Getting to drop point
+        goalsLeft2 = translations + goalLeft1#Getting to drop point
+        goalsRight2 = translations + goalRight1#Getting to drop point
 
 
-        points_left =  goalLeft2
-        points_right=  goalRight2
+        points_left =  goalsLeft2
+        points_right=  goalsRight2
         
         for i in range(len(points_left)):
             p_l = points_left[i]
@@ -808,12 +808,12 @@ class Simulation(Simulation_base):
         # ---------------- Unclamping stage ----------------
         
         #Take the last goal coordinate to compute the points to help unclamp the robot
-        goalLeft3 =  [goalLeft2[-1] + np.array([0,0.09,0]), goalLeft2[-1] + np.array(np.array([0.0,0.09,0.10]))] #Unclamping points 
-        goalRight3 = [goalRight2[-1] + np.array([0,-0.09,0]), goalRight2[-1] + np.array(np.array([0,-0.30,0.10])) ]#Unclamping points
+        goalsLeft3 =  [goalsLeft2[-1] + np.array([0,0.09,0]), goalsLeft2[-1] + np.array(np.array([0.0,0.09,0.10]))] #Unclamping points 
+        goalsRight3 = [goalsRight2[-1] + np.array([0,-0.09,0]), goalsRight2[-1] + np.array(np.array([0,-0.30,0.10])) ]#Unclamping points
         
       
-        points_left =  goalLeft3
-        points_right=   goalRight3
+        points_left =  goalsLeft3
+        points_right=   goalsRight3
         for i in range(len(points_left)):
             p_l = points_left[i]
             p_r = points_right[i]
