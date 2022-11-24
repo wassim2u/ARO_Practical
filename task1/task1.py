@@ -29,7 +29,7 @@ except:
 pybulletConfigs = {
     "simulation": bullet_simulation,
     "pybullet_extra_data": pybullet_data,
-    "gui": True,
+    "gui": gui,
     "panels": False,
     "realTime": False,
     "controlFrequency": 1000,
@@ -41,7 +41,7 @@ pybulletConfigs = {
 }
 robotConfigs = {
     "robotPath": core_path + "/nextagea_description/urdf/NextageaOpen.urdf",
-    "robotPIDConfigs": core_path + "/PD_gains_template.yaml",
+    "robotPIDConfigs": core_path + "/PD_gains.yaml",
     "robotStartPos": [0, 0, 0.85],
     "robotStartOrientation": [0, 0, 0, 1],
     "fixedBase": True,
@@ -52,19 +52,14 @@ verbose = False
 debugLine = True
 
 
-# TODO: Add your code here to start simulation
 ref = [0, 0, 1]
 sim = Simulation(pybulletConfigs, robotConfigs, refVect=ref)
-
-# This is an example target position for the left end effector. This target
-# position assumes your world frame is located at the base. If your world
-# frame is located at the waist, you will need to transform this vector using
-# the base_to_waist translation.
 
 #Define end effector and target variables
 endEffector = "LARM_JOINT5"
 targetPosition = np.array([0.37, 0.23, 1.06385]) - np.array([0, 0, 0.85])  # x,y,z coordinates in world frame. Please note that we subtract our positions by a constant amount because we represent our origin from the frame base_to_waist rather than base_to_dummy
 targetOrientation = [0,0,1] # orientation coordinates.
+
 
 pltTime, pltEFPosition = sim.move_without_PD(endEffector, targetPosition, speed=0.01, orientation=targetOrientation, threshold=1e-3, maxIter=3000, debug=True, verbose=False, startJoint = "base_to_dummy")
 

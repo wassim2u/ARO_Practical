@@ -26,7 +26,7 @@ LARM_JOINT0_position_controller:
 LARM_JOINT1_position_controller:
   type: effort_controllers/JointPositionController
   joint: LARM_JOINT1
-  pid: {p: 300.0, i: 15.0, d: 40.0}
+  pid: {p: 350.0, i: 15.0, d: 40.0}
 LARM_JOINT2_position_controller:
   type: effort_controllers/JointPositionController
   joint: LARM_JOINT2
@@ -34,7 +34,7 @@ LARM_JOINT2_position_controller:
 LARM_JOINT3_position_controller:
   type: effort_controllers/JointPositionController
   joint: LARM_JOINT3
-  pid: {p: 30.0, i: 10.0, d: 5.0}
+  pid: {p: 80.0, i: 10.0, d: 5.0}
 LARM_JOINT4_position_controller:
   type: effort_controllers/JointPositionController
   joint: LARM_JOINT4
@@ -52,7 +52,7 @@ RARM_JOINT0_position_controller:
 RARM_JOINT1_position_controller:
   type: effort_controllers/JointPositionController
   joint: RARM_JOINT1
-  pid: {p: 300.0, i: 15.0, d: 40.0}
+  pid: {p: 350.0, i: 15.0, d: 40.0}
 RARM_JOINT2_position_controller:
   type: effort_controllers/JointPositionController
   joint: RARM_JOINT2
@@ -60,7 +60,7 @@ RARM_JOINT2_position_controller:
 RARM_JOINT3_position_controller:
   type: effort_controllers/JointPositionController
   joint: RARM_JOINT3
-  pid: {p: 30.0, i: 10.0, d: 5.0}
+  pid: {p: 50.0, i: 10.0, d: 5.0}
 RARM_JOINT4_position_controller:
   type: effort_controllers/JointPositionController
   joint: RARM_JOINT4
