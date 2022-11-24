@@ -182,6 +182,25 @@ class Simulation(Simulation_base):
         
         return R
 
+    def getTransformationMatrices(self):
+        """
+            Returns the homogeneous transformation matrices for each joint as a dictionary of matrices.
+        """
+        transformationMatrices = {}
+        jointAngles = self.measureJointAngles()
+        left, jointnamesleft = self.forwardKinematics("LARM_JOINT5", jointAngles)
+        right,jointnamesright = self.forwardKinematics("RARM_JOINT5", jointAngles)
+        head, jointnameshead = self.forwardKinematics("HEAD_JOINT1", jointAngles)
+        # some overlap but its fine
+        for i, name in enumerate(jointnamesleft):
+            transformationMatrices[name] = left[i]
+        for i, name in enumerate(jointnamesright):
+            transformationMatrices[name] = right[i]
+        for i, name in enumerate(jointnameshead):
+            transformationMatrices[name] = head[i]
+
+        return transformationMatrices
+        
     def forwardKinematics(self, finalJointName, jointPos, startJoint="base_to_dummy"):
         """
         Compute the forward kinematics for all joints in the kinematic chain up until the joint of interest which is the end effector.
@@ -283,22 +302,6 @@ class Simulation(Simulation_base):
         # results in 6xN matrix 
         return np.array(jacobian).T
 
-
-        
-
-    def getJointLocationAndOrientation(self, jointName):
-        """
-            Returns the position and rotation matrix of a given joint using Forward Kinematics
-            according to the topology of the Nextage robot.
-        """
-
-        jointMatrices, _ = self.forwardKinematics(jointName, self.measureJointAngles())
-        jointMatrix = jointMatrices[-1]
-        p_i, r_i = self.extractPositionAndRotation(jointMatrix)
-
-        return p_i, r_i
-    
-
     def getJointPosition(self, jointName):
         """Get the position of a joint in the world frame, leave this unchanged please."""
         return self.getJointLocationAndOrientation(jointName)[0]
@@ -335,7 +338,7 @@ class Simulation(Simulation_base):
         
     # Task 1.2 Inverse Kinematics
 
-    def inverseKinematics(self, endEffector, targetPosition, orientation, interpolationSteps, threshold, startJoint, debug=False):
+    def inverseKinematics(self, endEffector, targetPosition, orientation, interpolationSteps, threshold, startJoint = "base_to_dummy", debug=False):
         """Your IK solver \\
         Arguments: \\
             endEffector: the jointName the end-effector \\
@@ -548,7 +551,7 @@ class Simulation(Simulation_base):
         pltTime, pltTarget, pltTorque, pltTorqueTime, pltPosition, pltVelocity = [], [], [], [], [], []
         timePassed = 0
         torque = 0
-        while (abs(self.getJointPos(joint) - targetPosition) > 0.034):
+        while (abs(self.getJointPos(joint) - targetPosition) > 0.0349):
             if('pos' not in self.jointsInfos[joint]):
                 self.jointsInfos[joint]['pos'] = self.getJointPos(joint)
             if('vel' not in self.jointsInfos[joint]):
@@ -558,7 +561,7 @@ class Simulation(Simulation_base):
             
             self.jointsInfos[joint]['lastVel']   = self.jointsInfos[joint]['vel']
             self.jointsInfos[joint]['vel']       = (self.jointsInfos[joint]['pos'] - self.jointsInfos[joint]['lastPos'])/ self.dt if self.dt >= 0.00001 else self.jointsInfos[joint]['lastVel']
-
+            print(abs(self.getJointPos(joint) - targetPosition))
             pltTime.append(timePassed) 
             pltVelocity.append(self.jointsInfos[joint]['vel'])
             pltPosition.append(self.jointsInfos[joint]['pos'])
@@ -580,7 +583,7 @@ class Simulation(Simulation_base):
         """
         targetStatess, jointNames, efDiffs, eflocations, pltTimes = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                                                 orientation=orientation,
-                                                                interpolationSteps=20, #TODO: whats the  interpolation step here?
+                                                                interpolationSteps=20,
                                                                 threshold=threshold,
                                                                 startJoint=startJoint,
                                                                 debug = debug
@@ -679,8 +682,6 @@ class Simulation(Simulation_base):
         """
         time = np.linspace(0, nTimes, len(points))
         timerange = np.linspace(0, nTimes, nTimes)
-        #print(timerange)
-
         points = points.T
 
         cs_x = CubicSpline(time, points[0], bc_type = "natural")
@@ -696,9 +697,9 @@ class Simulation(Simulation_base):
         """A template function for you, you are free to use anything else"""        
         time.sleep(5)
         startPoint = self.getJointPosition("LARM_JOINT5") + np.array([0, 0, 0.85])         
-        points = np.array([startPoint, [0.15, 0.1, 1],[0.12, -0.01, 0.98],[0.35, -0.015, 0.98],[0.55, 0, 0.98], [0.60, 0., 0.98]])
+        points = np.array([startPoint, [0.15, 0.1, 1],[0.12, -0.012, 0.96],[0.35, 0.01, 0.96],[0.55, 0.01, 0.96], [0.60, 0.01, 0.96]])
         # Simply use hardcoded points. We can also interpolate but its honestly not needed. 
-        print(points)
+        #points= self.cubic_interpolation(points, nTimes = 10)
         for p in points:
             self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
 
@@ -729,16 +730,13 @@ class Simulation(Simulation_base):
                                                                 debug=debug
                                                                 )
         
-        #print(targetStatess[-1].shape)
         #print("Done with kinematics")
 
         final = np.concatenate([targetStatess_2[-1], targetStatess[-1][3:]])
         final[:3] = (targetStatess_2[-1][:3] + targetStatess[-1][:3]) / 2
         jointNames_2.extend(jointNames[3:])
-        # for i, targetStates in enumerate(targetStatess):
         if debug: 
             visualShift = eflocations[-1]
-            collisionShift = [0,0,0]
             inertiaShift = [0,0,0]
 
             meshScale=[0.1,0.1,0.1]
@@ -755,9 +753,7 @@ class Simulation(Simulation_base):
             ):  
                 #print("Break")
                 break
-                
-            #print()
-            #   
+                 
         #print("DONE")
         
         return pltTimes, eflocations
