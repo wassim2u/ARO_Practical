@@ -601,7 +601,7 @@ class Simulation(Simulation_base):
         
             self.tick(targetStatess[-1], jointNames, speed)
             if(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]) < threshold):
-                #print("Reached treshold")
+                # print("Reached treshold")
                 break 
         #print("DONE")
         
@@ -645,7 +645,7 @@ class Simulation(Simulation_base):
                                             0, 
                                             self.jointsInfos[joint]['vel'],
                                             0, kp, ki, kd)  # TODO: fix me
-            #print(joint, ":", torque)
+   
             self.p.setJointMotorControl2(
                 bodyIndex=self.robot,
                 jointIndex=self.jointIds[joint],
@@ -665,7 +665,6 @@ class Simulation(Simulation_base):
                 flags=self.p.WORLD_FRAME
             )
             # Gravity compensation ends here
-
         self.p.stepSimulation()
         self.drawDebugLines()
         time.sleep(self.dt)
@@ -699,7 +698,6 @@ class Simulation(Simulation_base):
         startPoint = self.getJointPosition("LARM_JOINT5") + np.array([0, 0, 0.85])         
         points = np.array([startPoint, [0.15, 0.1, 1],[0.12, -0.01, 0.98],[0.35, -0.015, 0.98],[0.55, 0, 0.98], [0.60, 0., 0.98]])
         # Simply use hardcoded points. We can also interpolate but its honestly not needed. 
-        #points= self.cubic_interpolation(points, nTimes = 10)
         print(points)
         for p in points:
             self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
@@ -764,9 +762,67 @@ class Simulation(Simulation_base):
         
         return pltTimes, eflocations
     # Task 3.2 Grasping & Docking
-    def clamp(self, leftTargetAngle, rightTargetAngle, angularSpeed=0.005, threshold=1e-1, maxIter=300, verbose=False):
+    def clamp(self, angularSpeed=0.005, threshold=1e-1, maxIter=300, verbose=False):
         """A template function for you, you are free to use anything else"""
-        # TODO: Append your code here
-        pass
+        
+        goalLeft1 = np.array([0.46, 0.09, 1.069])   #Getting to pickup point 
+        goalRight1 = np.array([0.46, -0.08, 1.069])  #Getting to pickup point
+        shiftToAvoidTableCollision = np.array([0,0,0.075])
+
+        
+        translations = np.array([
+            [-0.16,0.32,0.20],
+            [-0.20,0.39,0.18],
+            [-0.08,0.36,0.00],
+        ])
+    
+        goalLeft2 = translations + goalLeft1#Getting to drop point
+        goalRight2 = translations + goalRight1#Getting to drop point
+
+
+        goalLeft3 =  np.linspace(goalLeft2[-1] + np.array([0,0.09,0]), goalLeft2[-1] + np.array(np.array([0.0,0.09,0.10])), 2 ) #Unclamping points 
+        goalRight3 =  np.linspace(goalRight2[-1] + np.array([0,-0.09,0]), goalRight2[-1] + np.array(np.array([0,-0.09,0.10])), 2) #Unclamping points
+
+        startPointL = self.getJointPosition("LARM_JOINT5") + shiftToAvoidTableCollision  + np.array([0, 0, 0.85]) 
+        startPointR = self.getJointPosition("RARM_JOINT5")  + shiftToAvoidTableCollision  + np.array([0, 0, 0.85])  
+
+    
+    
+        #Clamping/Pickup stage
+        points_left = [startPointL , goalLeft1 ]
+        points_right= [startPointR , goalRight1 ]
+
+        for i in range(len(points_left)):
+            p_l = points_left[i]
+            p_r = points_right[i]
+            self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
+                                                                        np.array(p_r) - np.array([0, 0, 0.85])],
+                                        orientations=[[0,1,1], [0,-1,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
+
+        #Docking stage
+        points_left =  goalLeft2
+        points_right=  goalRight2
+        
+        for i in range(len(points_left)):
+            p_l = points_left[i]
+            p_r = points_right[i]
+            self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
+                                                                        np.array(p_r) - np.array([0, 0, 0.85])],
+                                        orientations=[[0,1,1], [0,-1,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
+
+
+        #Unclamping stage
+
+        points_left =  goalLeft3
+        points_right=   goalRight3
+        for i in range(len(points_left)):
+            p_l = points_left[i]
+            p_r = points_right[i]
+
+            
+            self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
+                                                                        np.array(p_r) - np.array([0, 0, 0.85])],
+                                        orientations=[[0,0,1], [0,0,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
+        
 
  ### END
