@@ -60,7 +60,7 @@ RARM_JOINT2_position_controller:
 RARM_JOINT3_position_controller:
   type: effort_controllers/JointPositionController
   joint: RARM_JOINT3
-  pid: {p: 50.0, i: 10.0, d: 5.0}
+  pid: {p: 80.0, i: 10.0, d: 5.0}
 RARM_JOINT4_position_controller:
   type: effort_controllers/JointPositionController
   joint: RARM_JOINT4

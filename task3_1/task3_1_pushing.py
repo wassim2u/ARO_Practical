@@ -95,12 +95,3 @@ def solution():
 tableId, cubeId, targetId = getReadyForTask()
 
 solution()
-
-
-    
-## remove this in final submission
-location, orientation = bullet_simulation.getBasePositionAndOrientation(cubeId)
-print("Final Distance: ",np.linalg.norm(location - finalTargetPos))
-
-print(sim.getJointPosition("LARM_JOINT5")  + np.array([0, 0, 0.85]))
-print(sim.getJointPosition("RARM_JOINT5")  + np.array([0, 0, 0.85]))

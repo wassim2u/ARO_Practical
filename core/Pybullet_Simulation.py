@@ -768,16 +768,17 @@ class Simulation(Simulation_base):
         
         translations = np.array([
             [-0.16,0.32,0.20],
-            [-0.20,0.39,0.18],
-            [-0.08,0.36,0.00],
+            [-0.20,0.40,0.18],
+            [-0.20,0.45,0.00],
         ])
+        translations = self.cubic_interpolation(translations, 8)
     
         goalLeft2 = translations + goalLeft1#Getting to drop point
         goalRight2 = translations + goalRight1#Getting to drop point
 
 
         goalLeft3 =  np.linspace(goalLeft2[-1] + np.array([0,0.09,0]), goalLeft2[-1] + np.array(np.array([0.0,0.09,0.10])), 2 ) #Unclamping points 
-        goalRight3 =  np.linspace(goalRight2[-1] + np.array([0,-0.09,0]), goalRight2[-1] + np.array(np.array([0,-0.09,0.10])), 2) #Unclamping points
+        goalRight3 =  np.linspace(goalRight2[-1] + np.array([0,-0.09,0]), goalRight2[-1] + np.array(np.array([0,-0.30,0.10])), 2) #Unclamping points
 
         startPointL = self.getJointPosition("LARM_JOINT5") + shiftToAvoidTableCollision  + np.array([0, 0, 0.85]) 
         startPointR = self.getJointPosition("RARM_JOINT5")  + shiftToAvoidTableCollision  + np.array([0, 0, 0.85])  
@@ -804,7 +805,7 @@ class Simulation(Simulation_base):
             p_r = points_right[i]
             self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                         np.array(p_r) - np.array([0, 0, 0.85])],
-                                        orientations=[[0,1,1], [0,-1,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
+                                        orientations=[[0,0.65,1], [0,-0.6,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
 
 
         #Unclamping stage
