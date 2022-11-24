@@ -755,7 +755,7 @@ class Simulation(Simulation_base):
         
         return pltTimes, efLocations
     # Task 3.2 Grasping & Docking
-    def clamp(self, angularSpeed=0.005, threshold=1e-3, maxIter=3000, debug=False, verbose=False):
+    def clamp(self, angularSpeed=0.005, threshold=1e-3, maxIter=300, debug=False, verbose=False):
         """Grasping and docking the object. This consists of essentially three stages: 
         1) Clamping stage to orient itself and move the arms towards the object to be able to pick it up
         2) Moving stage where the robot moves the object into a designated target area
