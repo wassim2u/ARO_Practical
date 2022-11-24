@@ -100,7 +100,7 @@ def getReadyForTask():
 
 
 def solution():
-    sim.clamp()
+    sim.clamp(verbose=True)
 
 tableId, cubeId, targetId = getReadyForTask()
 

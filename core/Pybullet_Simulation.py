@@ -555,7 +555,8 @@ class Simulation(Simulation_base):
                             
                             
             if verbose:                
-                print(abs(self.getJointPos(joint) - targetPosition))
+                print("Difference: {}".format(abs(self.getJointPos(joint) - targetPosition)))
+            #Save the current results
             pltTime.append(timePassed) 
             pltVelocity.append(self.jointsInfos[joint]['vel'])
             pltPosition.append(self.jointsInfos[joint]['pos'])
@@ -575,6 +576,8 @@ class Simulation(Simulation_base):
         Return:
             pltTime, pltDistance arrays used for plotting
         """
+        if verbose:
+            print("-" * 40)
         targetStatess, jointNames, targetDistances, efLocations, pltTimes = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                                                 orientation=orientation,
                                                                 interpolationSteps=20,
@@ -684,14 +687,14 @@ class Simulation(Simulation_base):
         return points
 
     # Task 3.1 Pushing
-    def dockingToPosition(self):
+    def dockingToPosition(self, threshold=1e-3, maxIter=1000, debug=False, verbose=False):
         """Function that pushes the object to a designated target area using handcrafted points."""        
         time.sleep(5)
         startPoint = self.getJointPosition("LARM_JOINT5") + np.array([0, 0, 0.85])         
         points = np.array([startPoint, [0.15, 0.1, 1],[0.12, -0.012, 0.96],[0.35, 0.01, 0.96],[0.55, 0.01, 0.96], [0.60, 0.01, 0.96]])
         # Simply use hardcoded points. We can also interpolate but its honestly not needed. 
         for p in points:
-            self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
+            self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), orientation=[0,1,1], threshold=threshold, maxIter=maxIter, debug=debug, verbose=verbose, startJoint = "base_to_dummy")
 
 
     def move_with_PD_multiple(self, endEffectors, targetPositions, speed=0.01, orientations=None,
@@ -702,7 +705,8 @@ class Simulation(Simulation_base):
         Returns:
             pltTime, pltDistance arrays used for plotting
         """
-        
+        if verbose:
+            print("-" * 40)
         #Calculate the inverse kinematics for the first end effector
         targetStatess, jointNames, targetDistances, efLocations, pltTimes = self.inverseKinematics(endEffector=endEffectors[0], targetPosition=targetPositions[0], 
                                                                 orientation=orientations[0],
@@ -746,15 +750,15 @@ class Simulation(Simulation_base):
         
         return pltTimes, efLocations
     # Task 3.2 Grasping & Docking
-    def clamp(self, angularSpeed=0.005, threshold=1e-1, maxIter=300, verbose=False):
+    def clamp(self, angularSpeed=0.005, threshold=1e-3, maxIter=3000, debug=False, verbose=False):
         """Grasping and docking the object. This consists of essentially three stages: 
         1) Clamping stage to orient itself and move the arms towards the object to be able to pick it up
         2) Moving stage where the robot moves the object into a designated target area
         3) Unclamping stage where the robot ungrasps the placed object
         
         We supply handcrafted points for each of these stages.
-        """
-    
+        """  
+        
         # ---------------- Clamping/Pickup stage ----------------
         goalLeft1 = np.array([0.46, 0.09, 1.069])   #Getting to pickup point 
         goalRight1 = np.array([0.46, -0.08, 1.069])  #Getting to pickup point
@@ -774,7 +778,7 @@ class Simulation(Simulation_base):
             p_r = points_right[i]
             self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                         np.array(p_r) - np.array([0, 0, 0.85])],
-                                        orientations=[[0,1,1], [0,-1,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
+                                        orientations=[[0,1,1], [0,-1,1]], threshold=threshold, maxIter=maxIter, debug=debug, verbose=verbose)
 
         # ---------------- Docking stage ----------------
         translations = np.array([
@@ -796,14 +800,14 @@ class Simulation(Simulation_base):
             p_r = points_right[i]
             self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                         np.array(p_r) - np.array([0, 0, 0.85])],
-                                        orientations=[[0,0.65,1], [0,-0.6,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
+                                        orientations=[[0,0.65,1], [0,-0.6,1]], threshold=threshold, maxIter=maxIter, debug=debug, verbose=verbose)
 
 
         # ---------------- Unclamping stage ----------------
         
-       
-        goalLeft3 =  np.linspace(goalLeft2[-1] + np.array([0,0.09,0]), goalLeft2[-1] + np.array(np.array([0.0,0.09,0.10])), 2 ) #Unclamping points 
-        goalRight3 =  np.linspace(goalRight2[-1] + np.array([0,-0.09,0]), goalRight2[-1] + np.array(np.array([0,-0.30,0.10])), 2) #Unclamping points
+        #Take the last goal coordinate to compute the points to help unclamp the robot
+        goalLeft3 =  [goalLeft2[-1] + np.array([0,0.09,0]), goalLeft2[-1] + np.array(np.array([0.0,0.09,0.10]))] #Unclamping points 
+        goalRight3 = [goalRight2[-1] + np.array([0,-0.09,0]), goalRight2[-1] + np.array(np.array([0,-0.30,0.10])) ]#Unclamping points
         
       
         points_left =  goalLeft3
@@ -811,11 +815,9 @@ class Simulation(Simulation_base):
         for i in range(len(points_left)):
             p_l = points_left[i]
             p_r = points_right[i]
-
-            
             self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
                                                                         np.array(p_r) - np.array([0, 0, 0.85])],
-                                        orientations=[[0,0,1], [0,0,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
+                                        orientations=[[0,0,1], [0,0,1]], threshold=threshold, maxIter=maxIter, debug=debug, verbose=verbose)
         
 
  ### END
