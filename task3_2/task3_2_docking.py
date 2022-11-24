@@ -132,9 +132,8 @@ def solution():
     
     translations = np.array([
         [-0.16,0.32,0.20],
-        [-0.20,0.39,0.18],
-        [-0.08,0.36,0.00],
-        # [-0.17,0.39,0.05],
+        [-0.20,0.39,0.10],
+        [-0.13,0.38,0.02]
     ])
     
     # translations = np.array([
@@ -191,14 +190,12 @@ def solution():
     #Moving object stage
     points_left =  goalLeft2
     points_right=  goalRight2
-    print("INITIAL")
-    print(points_right)
-    print("WITH CUBIC HELP ME")
     points_left = sim.cubic_interpolation(points_left, nTimes = 9)
     points_right= sim.cubic_interpolation(points_right, nTimes = 9)
-    print(points_right)
+
     orientations_l_step= np.linspace([0,1,1], [0,1,1],len(points_left))
     orientations_r_step= np.linspace([0,-1,1], [0,-1,1],len(points_right))
+
     # plt.figure()
     # plt.scatter(goalRight2[:,0], goalRight2[:,1])
     # plt.plot(np.linspace(0, len(goalRight2), 5), points_right)
@@ -250,6 +247,7 @@ def solution():
 
 tableId, cubeId, targetId = getReadyForTask()
 
+global cubeID
 print(bullet_simulation.getBasePositionAndOrientation(cubeId))
 print(bullet_simulation.getBasePositionAndOrientation(targetId))
 solution()
