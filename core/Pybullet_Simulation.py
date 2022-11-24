@@ -538,6 +538,8 @@ class Simulation(Simulation_base):
         pltTime, pltTarget, pltTorque, pltTorqueTime, pltPosition, pltVelocity = [], [], [], [], [], []
         timePassed = 0
         torque = 0
+        
+        #Move joint until it converges under a certain defined threshold to terminate.
         while (abs(self.getJointPos(joint) - targetPosition) > 0.0349):
             if('pos' not in self.jointsInfos[joint]):
                 self.jointsInfos[joint]['pos'] = self.getJointPos(joint)
