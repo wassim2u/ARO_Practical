@@ -61,7 +61,7 @@ targetPosition = np.array([0.37, 0.23, 1.06385]) - np.array([0, 0, 0.85])  # x,y
 targetOrientation = [0,0,1] # orientation coordinates.
 
 
-pltTime, pltEFPosition = sim.move_without_PD(endEffector, targetPosition, speed=0.01, orientation=targetOrientation, threshold=1e-3, maxIter=3000, debug=True, verbose=False, startJoint = "base_to_dummy")
+pltTime, pltTargetDistances = sim.move_without_PD(endEffector, targetPosition, orientation=targetOrientation, threshold=1e-3, maxIter=3000, debug=True, verbose=False, startJoint = "base_to_dummy")
 
 #FK
 # Now plot some graphs
@@ -71,7 +71,7 @@ task1_savefig = True
 
 fig = plt.figure(figsize=(6, 4))
 
-plt.plot(pltTime, pltEFPosition, color='blue')
+plt.plot(pltTime, pltTargetDistances, color='blue')
 plt.xlabel("Time s")
 plt.ylabel("Distance to target position")
 

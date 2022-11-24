@@ -334,6 +334,23 @@ class Simulation(Simulation_base):
         p_i = jointMatrix[:3,3]
         r_i = jointMatrix[:3,:3]
         return p_i, r_i
+    
+    
+    def visualiseCoordinates(self,coordinate, colour = [0,1,1,1], radius = 0.02, basePosition=[0,0,0.85]):
+        """Renders the coordinate in simulation as a sphere of a certain size. Used for debugging to identify the results of our computations and more.
+
+        Args:
+            coordinate (list): 3D point coordinate
+            colour (list): Colour of the sphere
+            radius (float): Radius of the sphere
+            basePosition (list, optional): Base position, used as offset to represent our coordinate in the world frame accordingly. Defaults to [0,0,0.85].
+        """
+        visualShift = coordinate
+        inertiaShift = [0,0,0]
+        meshScale=[0.1,0.1,0.1]
+        visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=colour,radius=  radius, visualFramePosition=visualShift, meshScale=meshScale)
+
+        p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = basePosition, useMaximalCoordinates=False)
         
         
     # Task 1.2 Inverse Kinematics
@@ -358,99 +375,69 @@ class Simulation(Simulation_base):
 
         if orientation==None:
             orientation = [0,0,0]
-            # orientation = self.getJointOrientation(endEffector) 
-            print(self.refVector)
 
+
+        #Starting joint angles - We retrieve the current configuration for the joints that are part of the kinematics chain
         jointAngles = self.measureJointAngles()
-
         fkMatrices, jointNames = self.forwardKinematics(endEffector, jointAngles, startJoint)
-
-        efPosition, efAngle = self.extractPositionAndRotation(fkMatrices[-1])
-        
-        efOrientation = self.getJointAxis(endEffector) 
-        #print(efOrientation)
-        
-        #Joint angles
+        efPosition, efRotation = self.extractPositionAndRotation(fkMatrices[-1])
         q = np.array([ jointAngles[val] for val in jointNames] ) 
- 
-        traj = [q]
-        EFDif = [np.linalg.norm(efPosition - targetPosition)]
-        EFLocations = [efPosition]
-        pltTimes =[0]
-        # -- Debug - Draw where the end effector starts in light blue
-        #print("Starting EF Position :" + str(efPosition))
-        #print("Starting EF Angle :" + str(efAngle))
+        
+        #Initialise lists used to save different values for each iteration
+        traj = [q] # - Represents the list of all joint angles computed at each iteration
+        efDiff = [np.linalg.norm(efPosition - targetPosition)] # - Represents the list of distance from end effector to target point
+        efLocations = [efPosition] # - Represents the list of end effector locations 
+        pltTimes =[0] # - Represents the time taken for each iteration
+
+        #Visualise the starting point of end effector as cyan
         if debug:
+            self.visualiseCoordinates(coordinate=efPosition, colour=[0,1,1,1], radius=0.02)
             
-            visualShift = efPosition
-            inertiaShift = [0,0,0]
-
-            meshScale=[0.1,0.1,0.1]
-            visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[0,1,1,1],radius= 0.02, visualFramePosition=visualShift, meshScale=meshScale)
-
-            p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
         # Compute the tiny changes in positions for the end effector to go towards the target
         stepPositions = np.linspace(efPosition,targetPosition,num=interpolationSteps)
 
         for i in range(len(stepPositions)):
             currGoal = stepPositions[i]
 
-            # diff for both position and angle
-            dy = currGoal - efPosition
-            dyOrientation = orientation - efAngle@self.jointRotationAxis[endEffector]
-            dy = np.hstack((dy, dyOrientation))                
+            # calculate the difference for both position and angle
+            dyPosition = currGoal - efPosition
+            dyOrientation = orientation - efRotation@self.jointRotationAxis[endEffector]
+            dy = np.hstack((dyPosition, dyOrientation))                
 
             jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
-            #print("JACOBIAN SHAPE")
-            #print(jacobian.shape)
-            #print(jointNames)
 
-            # Moore-Penrose pseudoinverse
+            # Using moore-Penrose pseudoinverse of the jacobian, calculate the change in joint angles according to the change in position
             dq = np.linalg.pinv(jacobian)@dy
-
+            # Update the joint angles and save the new joints into the list of trajectory
             q += dq
-            
             traj.append(q)
-            
             for i in range(len(dq)):
                 jointAngles[jointNames[i]] = q[i]
 
-            q = np.array([ jointAngles[val] for val in jointNames] ) 
-            
             #Calculate the FK again with the updated joint angles
-            fkMatrices, jointNames_2 = self.forwardKinematics(endEffector, jointAngles, startJoint)
+            fkMatrices, _ = self.forwardKinematics(endEffector, jointAngles, startJoint)
 
-            assert(jointNames== jointNames_2)
-            #Calculate the new end effector position
-            efPosition, efAngle = self.extractPositionAndRotation(fkMatrices[-1])
-            efOrientation = self.getJointAxis(endEffector) 
-            
-            # EFLocations.append(efPosition)
-            
-            
-            #TODO: calculate the new end effector 
-            #Missing the FK calculate and updating end effector 
-            #if np.linalg.norm(efPosition - currGoal) < threshold:
-            #    break
-            EFLocations.append(efPosition)
-            
-            if debug:
-                visualShift = efPosition
-                collisionShift = [0,0,0]
-                inertiaShift = [0,0,0]
-
-                meshScale=[0.1,0.1,0.1]
-                visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[0,1,0,1],radius= 0.005, visualFramePosition=visualShift, meshScale=meshScale)
-
-                p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
-
-            EFDif.append(np.linalg.norm(efPosition - targetPosition))
+            #Retrieve the new end effector position and rotation matrix
+            efPosition, efRotation = self.extractPositionAndRotation(fkMatrices[-1])
+                        
+            #Save current results
+            efLocations.append(efPosition)
+            efDiff.append(np.linalg.norm(efPosition - targetPosition))
             timePassed += self.dt
             pltTimes.append(timePassed)
             
+            #Visualise the sub destinations of the IK solver in small green spheres 
+            if debug:
+                self.visualiseCoordinates(coordinate=efPosition, colour=[0,1,0,1], radius=0.005)
+               
+        #Visualise the final end effector position returned by IK solver in red, and the actual target position in dark blue
+        if debug:
+            self.visualiseCoordinates(coordinate=efLocations[-1], colour=[1,0,0,1], radius=0.015)
+            self.visualiseCoordinates(coordinate=targetPosition, colour=[0,0,1,1], radius=0.015)
+         
+
         
-        #print(efOrientation)
-        return np.array(traj), jointNames, EFDif, EFLocations, pltTimes
+        return np.array(traj), jointNames, efDiff, efLocations, pltTimes
 
 
 
@@ -463,7 +450,7 @@ class Simulation(Simulation_base):
             pltTime, pltDistance arrays used for plotting
         """
 
-        trajs, names, EFPositions, _, pltTime = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
+        trajs, names, targetDistances, _, pltTime = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                orientation=orientation,
                                interpolationSteps=50, 
                                threshold=threshold,
@@ -471,9 +458,8 @@ class Simulation(Simulation_base):
                                )
         for traj in trajs:
             self.tick_without_PD(names, traj)
-            
 
-        return pltTime, EFPositions
+        return pltTime, targetDistances
 
     def tick_without_PD(self, names, traj):
         """Ticks one step of simulation without PD control. """
@@ -503,7 +489,7 @@ class Simulation(Simulation_base):
             u(t) - the manipulation signal
         """
         integral = 0
-        # proportional term
+        # proportional term \ implement PD controller
         u_t = kp * (x_ref - x_real) + kd * (dx_ref - dx_real)  + ki * integral
         return u_t
 
@@ -527,7 +513,8 @@ class Simulation(Simulation_base):
 
             torque = self.calculateTorque(x_ref, x_real, dx_ref, dx_real, integral, kp, ki, kd)
             
-            #print("TORQUE:", torque)
+            if verbose:
+                print("{} Torque: {}".format(joint, str(torque)))
 
             # send the manipulation signal to the joint
             self.p.setJointMotorControl2(
@@ -560,8 +547,15 @@ class Simulation(Simulation_base):
             self.jointsInfos[joint]['pos']       = self.getJointPos(joint)
             
             self.jointsInfos[joint]['lastVel']   = self.jointsInfos[joint]['vel']
-            self.jointsInfos[joint]['vel']       = (self.jointsInfos[joint]['pos'] - self.jointsInfos[joint]['lastPos'])/ self.dt if self.dt >= 0.00001 else self.jointsInfos[joint]['lastVel']
-            print(abs(self.getJointPos(joint) - targetPosition))
+            #Condition added to safe guard against zero division
+            if self.dt >= 1e-9:        
+                self.jointsInfos[joint]['vel'] =  (self.jointsInfos[joint]['pos'] - self.jointsInfos[joint]['lastPos']) / self.dt 
+            else: 
+                self.jointsInfos[joint]['vel'] = self.jointsInfos[joint]['lastVel']
+                            
+                            
+            if verbose:                
+                print(abs(self.getJointPos(joint) - targetPosition))
             pltTime.append(timePassed) 
             pltVelocity.append(self.jointsInfos[joint]['vel'])
             pltPosition.append(self.jointsInfos[joint]['pos'])
@@ -581,42 +575,34 @@ class Simulation(Simulation_base):
         Return:
             pltTime, pltDistance arrays used for plotting
         """
-        targetStatess, jointNames, efDiffs, eflocations, pltTimes = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
+        targetStatess, jointNames, targetDistances, efLocations, pltTimes = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                                                 orientation=orientation,
                                                                 interpolationSteps=20,
                                                                 threshold=threshold,
                                                                 startJoint=startJoint,
                                                                 debug = debug
                                                                 )
-                        
-        #print("Done with kinematics")
-            
-        ## For debugging
-        visualShift = eflocations[-1]
-        inertiaShift = [0,0,0]
-
-        meshScale=[0.1,0.1,0.1]
-        visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[1,0,0,1],radius= 0.015, visualFramePosition=visualShift, meshScale=meshScale)
-
-        p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
-
+                               
+        if verbose:
+            print("Done with kinematics")
         for _ in range(maxIter):
         
-            self.tick(targetStatess[-1], jointNames, speed)
-            if(np.linalg.norm(self.getJointPosition(endEffector) -  eflocations[-1]) < threshold):
-                # print("Reached treshold")
+            self.tick(targetStatess[-1], jointNames)
+            if(np.linalg.norm(self.getJointPosition(endEffector) -  efLocations[-1]) < threshold):
+                if verbose:
+                    print("End effector within threshold. Terminate early")
                 break 
-        #print("DONE")
+        if verbose:
+            print("*** PD controller finished execution ***")
         
-        return pltTimes, eflocations
+        return pltTimes, efLocations
         
 
-    def tick(self, targetStates, targetJoints, speed = 0.0):
+    def tick(self, targetStates, targetJoints):
         """Ticks one step of simulation using PD control."""
         # Iterate through all joints and update joint states using PD control.
         for i, joint in enumerate(targetJoints):
             # skip dummy joints (world to base joint)
-            #print(joint)
             jointController = self.jointControllers[joint]
             if jointController == 'SKIP_THIS_JOINT':
                 continue
@@ -640,15 +626,20 @@ class Simulation(Simulation_base):
             self.jointsInfos[joint]['lastPos']   = self.jointsInfos[joint]['pos']
             self.jointsInfos[joint]['pos']       = self.getJointPos(joint)
             
-            self.jointsInfos[joint]['lastVel']   = self.jointsInfos[joint]['vel']        
-            self.jointsInfos[joint]['vel'] =  (self.jointsInfos[joint]['pos'] - self.jointsInfos[joint]['lastPos']) /self.dt 
+            self.jointsInfos[joint]['lastVel']   = self.jointsInfos[joint]['vel']  
+            #Condition added to safe guard against zero division
+            if self.dt >= 1e-9:        
+                self.jointsInfos[joint]['vel'] =  (self.jointsInfos[joint]['pos'] - self.jointsInfos[joint]['lastPos']) / self.dt 
+            else: 
+                self.jointsInfos[joint]['vel'] = self.jointsInfos[joint]['lastVel']
                 
+            
             torque = self.calculateTorque(  targetState, 
                                             self.jointsInfos[joint]['pos'],
                                             0, 
                                             self.jointsInfos[joint]['vel'],
                                             0, kp, ki, kd)  # TODO: fix me
-   
+            
             self.p.setJointMotorControl2(
                 bodyIndex=self.robot,
                 jointIndex=self.jointIds[joint],
@@ -694,35 +685,34 @@ class Simulation(Simulation_base):
 
     # Task 3.1 Pushing
     def dockingToPosition(self):
-        """A template function for you, you are free to use anything else"""        
+        """Function that pushes the object to a designated target area using handcrafted points."""        
         time.sleep(5)
         startPoint = self.getJointPosition("LARM_JOINT5") + np.array([0, 0, 0.85])         
         points = np.array([startPoint, [0.15, 0.1, 1],[0.12, -0.012, 0.96],[0.35, 0.01, 0.96],[0.55, 0.01, 0.96], [0.60, 0.01, 0.96]])
         # Simply use hardcoded points. We can also interpolate but its honestly not needed. 
-        #points= self.cubic_interpolation(points, nTimes = 10)
         for p in points:
-            self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), speed=0.01, orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
+            self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), orientation=[0,1,1], threshold=1e-3, maxIter=1000, debug=True, verbose=False, startJoint = "base_to_dummy")
 
 
     def move_with_PD_multiple(self, endEffectors, targetPositions, speed=0.01, orientations=None,
-        threshold=1e-3, maxIter=3000, debug=False, verbose=False, startJoint ="base_to_dummy"):
-        """
-        Move joints using inverse kinematics solver and using PD control.
+        threshold=1e-3, maxIter=3000, debug=False, verbose=False, startJoint ="base_to_dummy"):  
+        """Used for moving two end effectors at the same time, which is helpful for docking and grasping objects. Move joints using inverse kinematics solver and using PD control.
         This method should update joint states using the torque output from the PD controller.
-        Return:
+
+        Returns:
             pltTime, pltDistance arrays used for plotting
         """
         
-        
-        targetStatess, jointNames, efDiffs, eflocations, pltTimes = self.inverseKinematics(endEffector=endEffectors[0], targetPosition=targetPositions[0], 
+        #Calculate the inverse kinematics for the first end effector
+        targetStatess, jointNames, targetDistances, efLocations, pltTimes = self.inverseKinematics(endEffector=endEffectors[0], targetPosition=targetPositions[0], 
                                                                 orientation=orientations[0],
                                                                 interpolationSteps=20, #TODO: whats the  interpolation step here?
                                                                 threshold=threshold,
                                                                 startJoint="base_to_dummy",
                                                                 debug=debug
                                                                 )
-        
-        targetStatess_2, jointNames_2, efDiffs_2, eflocations_2, pltTimes_2 = self.inverseKinematics(endEffector=endEffectors[1], targetPosition=targetPositions[1], 
+        #Calculate the inverse kinematics for the second end effector
+        targetStatess_2, jointNames_2, targetDistances_2, efLocations_2, pltTimes_2 = self.inverseKinematics(endEffector=endEffectors[1], targetPosition=targetPositions[1], 
                                                                 orientation=orientations[1],
                                                                 interpolationSteps=20, #TODO: whats the  interpolation step here?
                                                                 threshold=threshold,
@@ -730,42 +720,63 @@ class Simulation(Simulation_base):
                                                                 debug=debug
                                                                 )
         
-        #print("Done with kinematics")
+        if verbose:
+            print("*** Done with kinematics ***")
 
+
+        # Combine the inverse kinematic joint states from both. Average the results returned in the chest joints
+        jointNames_2.extend(jointNames[3:])
         final = np.concatenate([targetStatess_2[-1], targetStatess[-1][3:]])
         final[:3] = (targetStatess_2[-1][:3] + targetStatess[-1][:3]) / 2
-        jointNames_2.extend(jointNames[3:])
-        if debug: 
-            visualShift = eflocations[-1]
-            inertiaShift = [0,0,0]
-
-            meshScale=[0.1,0.1,0.1]
-            visualShapeId = p.createVisualShape(shapeType=p.GEOM_SPHERE, rgbaColor=[1,0,0,1],radius= 0.015, visualFramePosition=visualShift, meshScale=meshScale)
-
-            p.createMultiBody(baseMass=0,baseInertialFramePosition=inertiaShift, baseVisualShapeIndex = visualShapeId, basePosition = [0,0,0.85], useMaximalCoordinates=False)
-
+      
         for _ in range(maxIter):
         
-            self.tick(final, jointNames_2, speed)
-            if(np.linalg.norm(self.getJointPosition(endEffectors[0]) - eflocations[-1]) < threshold
+            self.tick(final, jointNames_2)
+            #If both end effectors are within the threshold, terminate execution early
+            if(np.linalg.norm(self.getJointPosition(endEffectors[0]) - efLocations[-1]) < threshold
                and 
-               np.linalg.norm(self.getJointPosition(endEffectors[1] - eflocations_2[-1] < threshold))
+               np.linalg.norm(self.getJointPosition(endEffectors[1] - efLocations_2[-1] < threshold))
             ):  
-                #print("Break")
+                if verbose:
+                    print("End effector within threshold. Terminate early")
                 break
                  
-        #print("DONE")
+        if verbose:
+            print("*** PD controller finished execution ***")
         
-        return pltTimes, eflocations
+        return pltTimes, efLocations
     # Task 3.2 Grasping & Docking
     def clamp(self, angularSpeed=0.005, threshold=1e-1, maxIter=300, verbose=False):
-        """A template function for you, you are free to use anything else"""
+        """Grasping and docking the object. This consists of essentially three stages: 
+        1) Clamping stage to orient itself and move the arms towards the object to be able to pick it up
+        2) Moving stage where the robot moves the object into a designated target area
+        3) Unclamping stage where the robot ungrasps the placed object
         
+        We supply handcrafted points for each of these stages.
+        """
+    
+        # ---------------- Clamping/Pickup stage ----------------
         goalLeft1 = np.array([0.46, 0.09, 1.069])   #Getting to pickup point 
         goalRight1 = np.array([0.46, -0.08, 1.069])  #Getting to pickup point
-        shiftToAvoidTableCollision = np.array([0,0,0.075])
-
         
+        #Extra offset away for both arms used to raise them away from the table to orient itself properly
+        shiftToAvoidTableCollision = np.array([0,0,0.075])     
+
+        startPointL = self.getJointPosition("LARM_JOINT5") + shiftToAvoidTableCollision  + np.array([0, 0, 0.85]) 
+        startPointR = self.getJointPosition("RARM_JOINT5")  + shiftToAvoidTableCollision  + np.array([0, 0, 0.85])  
+
+    
+        points_left = [startPointL , goalLeft1 ]
+        points_right= [startPointR , goalRight1 ]
+
+        for i in range(len(points_left)):
+            p_l = points_left[i]
+            p_r = points_right[i]
+            self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
+                                                                        np.array(p_r) - np.array([0, 0, 0.85])],
+                                        orientations=[[0,1,1], [0,-1,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
+
+        # ---------------- Docking stage ----------------
         translations = np.array([
             [-0.16,0.32,0.20],
             [-0.20,0.40,0.18],
@@ -777,26 +788,6 @@ class Simulation(Simulation_base):
         goalRight2 = translations + goalRight1#Getting to drop point
 
 
-        goalLeft3 =  np.linspace(goalLeft2[-1] + np.array([0,0.09,0]), goalLeft2[-1] + np.array(np.array([0.0,0.09,0.10])), 2 ) #Unclamping points 
-        goalRight3 =  np.linspace(goalRight2[-1] + np.array([0,-0.09,0]), goalRight2[-1] + np.array(np.array([0,-0.30,0.10])), 2) #Unclamping points
-
-        startPointL = self.getJointPosition("LARM_JOINT5") + shiftToAvoidTableCollision  + np.array([0, 0, 0.85]) 
-        startPointR = self.getJointPosition("RARM_JOINT5")  + shiftToAvoidTableCollision  + np.array([0, 0, 0.85])  
-
-    
-    
-        #Clamping/Pickup stage
-        points_left = [startPointL , goalLeft1 ]
-        points_right= [startPointR , goalRight1 ]
-
-        for i in range(len(points_left)):
-            p_l = points_left[i]
-            p_r = points_right[i]
-            self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
-                                                                        np.array(p_r) - np.array([0, 0, 0.85])],
-                                        orientations=[[0,1,1], [0,-1,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
-
-        #Docking stage
         points_left =  goalLeft2
         points_right=  goalRight2
         
@@ -808,8 +799,13 @@ class Simulation(Simulation_base):
                                         orientations=[[0,0.65,1], [0,-0.6,1]], threshold=1e-3, maxIter=1000, debug=False, verbose=False, startJoint = "")
 
 
-        #Unclamping stage
-
+        # ---------------- Unclamping stage ----------------
+        
+       
+        goalLeft3 =  np.linspace(goalLeft2[-1] + np.array([0,0.09,0]), goalLeft2[-1] + np.array(np.array([0.0,0.09,0.10])), 2 ) #Unclamping points 
+        goalRight3 =  np.linspace(goalRight2[-1] + np.array([0,-0.09,0]), goalRight2[-1] + np.array(np.array([0,-0.30,0.10])), 2) #Unclamping points
+        
+      
         points_left =  goalLeft3
         points_right=   goalRight3
         for i in range(len(points_left)):
