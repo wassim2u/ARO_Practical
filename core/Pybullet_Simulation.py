@@ -694,7 +694,6 @@ class Simulation(Simulation_base):
     # Task 3.1 Pushing
     def dockingToPosition(self, threshold=1e-3, maxIter=1000, debug=False, verbose=False):
         """Function that pushes the object to a designated target area using handcrafted points."""        
-        time.sleep(5)
         startPoint = self.getJointPosition("LARM_JOINT5") + self.baseOffset        
         points = np.array([startPoint, [0.15, 0.1, 1],[0.12, -0.012, 0.96],[0.35, 0.01, 0.96],[0.55, 0.01, 0.96], [0.60, 0.01, 0.96]])
         # Simply use hardcoded points. We can also interpolate but its honestly not needed. 

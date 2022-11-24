@@ -90,7 +90,7 @@ def getReadyForTask():
 
 
 def solution():
-    debug = False
+    debug = True
     verbose = False
     sim.dockingToPosition(debug=debug, verbose=verbose)
 
