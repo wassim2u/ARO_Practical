@@ -404,9 +404,9 @@ class Simulation(Simulation_base):
             dyOrientation = orientation - efRotation@self.jointRotationAxis[endEffector]
             dy = np.hstack((dyPosition, dyOrientation))                
 
-            jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
 
             # Using moore-Penrose pseudoinverse of the jacobian, calculate the change in joint angles according to the change in position
+            jacobian = self.jacobianMatrix(endEffector, fkMatrices, jointNames=jointNames)
             dq = np.linalg.pinv(jacobian)@dy
             # Update the joint angles and save the new joints into the list of trajectory
             q += dq
