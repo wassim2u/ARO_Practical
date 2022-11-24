@@ -29,7 +29,7 @@ class Simulation(Simulation_base):
         else:
             self.refVector = np.array([1,0,0])
 
-
+        #Dictionary of joints to their successor, to help formulate the kinematic chain#
         self.jointMap = {
             'base_to_dummy': 'base_to_waist',  # Virtual joint
             'base_to_waist': 'CHEST_JOINT0',  # Fixed joint
@@ -54,6 +54,9 @@ class Simulation(Simulation_base):
             #'RHAND'      : None, # optional
             #'LHAND'      : None # optional
         }
+        
+        #Base translation offset for the coordinates
+        self.baseOffset = [0,0,0.85] 
 
         ########## Task 1: Kinematics ##########
         # Task 1.1 Forward Kinematics
@@ -343,7 +346,7 @@ class Simulation(Simulation_base):
             coordinate (list): 3D point coordinate
             colour (list): Colour of the sphere
             radius (float): Radius of the sphere
-            basePosition (list, optional): Base position, used as offset to represent our coordinate in the world frame accordingly. Defaults to [0,0,0.85].
+            basePosition (list, optional): Base position, used as offset to represent our coordinate in the world frame accordingly. Defaults to [0,0,0.85], which is the base offset constant defined for the robot
         """
         visualShift = coordinate
         inertiaShift = [0,0,0]
@@ -692,11 +695,11 @@ class Simulation(Simulation_base):
     def dockingToPosition(self, threshold=1e-3, maxIter=1000, debug=False, verbose=False):
         """Function that pushes the object to a designated target area using handcrafted points."""        
         time.sleep(5)
-        startPoint = self.getJointPosition("LARM_JOINT5") + np.array([0, 0, 0.85])         
+        startPoint = self.getJointPosition("LARM_JOINT5") + self.baseOffset        
         points = np.array([startPoint, [0.15, 0.1, 1],[0.12, -0.012, 0.96],[0.35, 0.01, 0.96],[0.55, 0.01, 0.96], [0.60, 0.01, 0.96]])
         # Simply use hardcoded points. We can also interpolate but its honestly not needed. 
         for p in points:
-            self.move_with_PD("LARM_JOINT5", np.array(p) - np.array([0, 0, 0.85]), orientation=[0,1,1], threshold=threshold, maxIter=maxIter, debug=debug, verbose=verbose, startJoint = "base_to_dummy")
+            self.move_with_PD("LARM_JOINT5", np.array(p) - self.baseOffset, orientation=[0,1,1], threshold=threshold, maxIter=maxIter, debug=debug, verbose=verbose, startJoint = "base_to_dummy")
 
 
     def move_with_PD_multiple(self, endEffectors, targetPositions, speed=0.01, orientations=None,
@@ -768,8 +771,8 @@ class Simulation(Simulation_base):
         #Extra offset away for both arms used to raise them away from the table to orient itself properly
         shiftToAvoidTableCollision = np.array([0,0,0.075])     
 
-        startPointL = self.getJointPosition("LARM_JOINT5") + shiftToAvoidTableCollision  + np.array([0, 0, 0.85]) 
-        startPointR = self.getJointPosition("RARM_JOINT5")  + shiftToAvoidTableCollision  + np.array([0, 0, 0.85])  
+        startPointL = self.getJointPosition("LARM_JOINT5") + shiftToAvoidTableCollision  + self.baseOffset
+        startPointR = self.getJointPosition("RARM_JOINT5")  + shiftToAvoidTableCollision  + self.baseOffset
 
     
         points_left = [startPointL , goalLeft1 ]
@@ -778,8 +781,8 @@ class Simulation(Simulation_base):
         for i in range(len(points_left)):
             p_l = points_left[i]
             p_r = points_right[i]
-            self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
-                                                                        np.array(p_r) - np.array([0, 0, 0.85])],
+            self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - self.baseOffset ,
+                                                                        np.array(p_r) - self.baseOffset],
                                         orientations=[[0,1,1], [0,-1,1]], threshold=threshold, maxIter=maxIter, debug=debug, verbose=verbose)
 
         # ---------------- Docking stage ----------------
@@ -800,8 +803,8 @@ class Simulation(Simulation_base):
         for i in range(len(points_left)):
             p_l = points_left[i]
             p_r = points_right[i]
-            self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
-                                                                        np.array(p_r) - np.array([0, 0, 0.85])],
+            self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - self.baseOffset ,
+                                                                        np.array(p_r) - self.baseOffset],
                                         orientations=[[0,0.65,1], [0,-0.6,1]], threshold=threshold, maxIter=maxIter, debug=debug, verbose=verbose)
 
 
@@ -817,8 +820,8 @@ class Simulation(Simulation_base):
         for i in range(len(points_left)):
             p_l = points_left[i]
             p_r = points_right[i]
-            self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - np.array([0, 0, 0.85]) ,
-                                                                        np.array(p_r) - np.array([0, 0, 0.85])],
+            self.move_with_PD_multiple( ["LARM_JOINT5", "RARM_JOINT5"], [np.array(p_l) - self.baseOffset ,
+                                                                        np.array(p_r) - self.baseOffset],
                                         orientations=[[0,0,1], [0,0,1]], threshold=threshold, maxIter=maxIter, debug=debug, verbose=verbose)
         
 

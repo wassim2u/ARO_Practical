@@ -90,7 +90,9 @@ def getReadyForTask():
 
 
 def solution():
-    sim.dockingToPosition()
+    debug = False
+    verbose = False
+    sim.dockingToPosition(debug=debug, verbose=verbose)
 
 tableId, cubeId, targetId = getReadyForTask()
 
