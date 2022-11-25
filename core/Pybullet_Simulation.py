@@ -118,11 +118,11 @@ class Simulation(Simulation_base):
         return jointPos
 
     def calculateTransformationMatrices(self, jointPos):
-        """ Returns the homogeneous transformation matrices for each joint as a dictionary of matrices.
+        """ Returns the homogeneous transformation matrices for each joint in the given kinematic chain of interest as a dictionary of matrices
         i.e) Assume we simplify our robot model to one arm joints of A,B,C with 0 as the origin, we define the transformation matrix T for A as T_{0->A}, for B as T_{A->B}, and C as T_{B->C}.
         
         Args:
-            jointPos (dict): Contains the joints current angles in radians mapped to its respective joint in the dictionary.
+            jointPos (dict): Contains the joints current angles in radians as values linked to its respective joint name as key in the dictionary. The joints would be the part of the kinematic chains we are interested in
         Returns:
             transformationMatrices (dict) : dictionary of joint transformation matricies T for all the joints defined in the robot.
         """

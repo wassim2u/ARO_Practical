@@ -61,7 +61,7 @@ targetPosition = np.array([0.37, 0.23, 1.06385]) - sim.baseOffset  # x,y,z coord
 targetOrientation = [0,0,1] # orientation coordinates.
 
 
-pltTime, pltTargetDistances = sim.move_without_PD(endEffector, targetPosition, orientation=targetOrientation, threshold=1e-3, maxIter=3000, debug=True, verbose=False, startJoint = "base_to_dummy")
+pltTime, pltTargetDistances = sim.move_without_PD(endEffector, targetPosition, orientation=targetOrientation, threshold=1e-3, maxIter=3000, debug=debugLine, verbose=verbose, startJoint = "base_to_dummy")
 
 #FK
 # Now plot some graphs
