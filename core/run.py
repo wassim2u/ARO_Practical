@@ -9,10 +9,21 @@ from methods import isFeasible
 
 
 def testGenData():
-	targets = np.array([[-0.5, -0.2, 1.5]]) - sim.baseOffset
-	ori = np.array([[0, np.sqrt(2)/2, np.sqrt(2)/2], [0, -np.sqrt(2)/2, np.sqrt(2)/2]])
-	sim.move_without_PD("RARM_JOINT5", targets[0], speed=0.9, orientation=np.array([0, 0, 1]),
-                                          threshold=10e-3, maxIter=1000, debug=True, verbose=False)
+	matrices, names = sim.forwardKinematics("RARM_JOINT5", sim.measureJointAngles())
+	pos, angle = sim.extractPositionAndRotation(matrices[3])
+	targets = np.array([[0.4, 0.1, 0.9]]) - pos
+	sim.move_without_PD("RARM_JOINT5", targets[0], speed=0.9, orientation=np.array([-1, -1, 1]),
+                                          threshold=10e-3, maxIter=1000, debug=True, verbose=False, startJoint="RARM_JOINT0")
+	matrices, names = sim.forwardKinematics("LARM_JOINT5", sim.measureJointAngles())
+	pos, angle = sim.extractPositionAndRotation(matrices[3])
+	targets = np.array([[0.1, 0.75, 1]]) - pos
+	sim.move_without_PD("LARM_JOINT5", targets[0], speed=0.9, orientation=np.array([0, -1, 0]),
+                                          threshold=10e-3, maxIter=1000, debug=True, verbose=False, startJoint="LARM_JOINT0")
+	matrices, names = sim.forwardKinematics("HEAD_JOINT0", sim.measureJointAngles())
+	pos, angle = sim.extractPositionAndRotation(matrices[3])
+	targets = np.array([[0.1, 0, 2]]) -pos - sim.baseOffset
+	sim.move_without_PD("HEAD_JOINT1", targets[0], speed=0.9, orientation=np.array([1, 1, 1]),
+                                          threshold=10e-3, maxIter=1000, debug=True, verbose=False, startJoint="HEAD_JOINT0")
 	log.save_trajectory()
 
 

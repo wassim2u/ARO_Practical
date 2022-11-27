@@ -457,7 +457,7 @@ class Simulation(Simulation_base):
 
         trajs, names, targetDistances, _, pltTime = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                orientation=orientation,
-                               interpolationSteps=110, 
+                               interpolationSteps=200, 
                                threshold=threshold,
                                startJoint=startJoint,
                                debug=debug
@@ -465,6 +465,7 @@ class Simulation(Simulation_base):
         for traj in trajs:
             log.log(self)
             self.tick_without_PD(names, traj)
+            print(traj)
         #Log configuration
         # log.log(names[-1])
         return pltTime, targetDistances
