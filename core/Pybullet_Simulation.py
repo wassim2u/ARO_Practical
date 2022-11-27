@@ -11,6 +11,7 @@ import re
 import time
 import yaml
 import pybullet as p
+import log
 
 from Pybullet_Simulation_base import Simulation_base
 
@@ -376,7 +377,7 @@ class Simulation(Simulation_base):
         # positions for all joints after performing inverse kinematics.
         timePassed = 0
 
-        if orientation==None:
+        if orientation is None:
             orientation = [0,0,0]
 
 
@@ -413,6 +414,7 @@ class Simulation(Simulation_base):
             dq = np.linalg.pinv(jacobian)@dy
             # Update the joint angles and save the new joints into the list of trajectory
             q += dq
+            # q = q % (2*np.pi)
             traj.append(q)
             for i in range(len(dq)):
                 jointAngles[jointNames[i]] = q[i]
@@ -455,13 +457,16 @@ class Simulation(Simulation_base):
 
         trajs, names, targetDistances, _, pltTime = self.inverseKinematics(endEffector=endEffector, targetPosition=targetPosition, 
                                orientation=orientation,
-                               interpolationSteps=50, 
+                               interpolationSteps=110, 
                                threshold=threshold,
-                               startJoint=startJoint
+                               startJoint=startJoint,
+                               debug=debug
                                )
         for traj in trajs:
+            log.log(self)
             self.tick_without_PD(names, traj)
-
+        #Log configuration
+        # log.log(names[-1])
         return pltTime, targetDistances
 
     def tick_without_PD(self, names, traj):

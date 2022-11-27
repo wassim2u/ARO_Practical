@@ -55,11 +55,17 @@ debugLine = True
 ref = [0, 0, 1]
 sim = Simulation(pybulletConfigs, robotConfigs, refVect=ref)
 
-#Define end effector and target variables
-endEffector = "LARM_JOINT5"
-targetPosition = np.array([0.37, 0.23, 1.06385]) - sim.baseOffset  # x,y,z coordinates in world frame. Please note that we subtract our positions by a constant amount because we represent our origin from the frame base_to_waist rather than base_to_dummy
-targetOrientation = [0,0,1] # orientation coordinates.
+# #Define end effector and target variables
+# endEffector = "LARM_JOINT5"
+# targetPosition = np.array([0.37, 0.23, 1.06385]) - sim.baseOffset  # x,y,z coordinates in world frame. Please note that we subtract our positions by a constant amount because we represent our origin from the frame base_to_waist rather than base_to_dummy
+# targetOrientation = [0,0,1] # orientation coordinates.
 
+
+
+targets = np.array([[0.5, -0.2, 1.1] , [0.2, -0.5, 1.1]]) - sim.baseOffset
+ori = np.array([[0, np.sqrt(2)/2, np.sqrt(2)/2], [0, -np.sqrt(2)/2, np.sqrt(2)/2]])
+sim.move_without_PD("LARM_JOINT5", targets[0], speed=0.9, orientation=np.array([0, 0, 1]),
+                                        threshold=10e-3, maxIter=1000, debug=True, verbose=False)
 
 pltTime, pltTargetDistances = sim.move_without_PD(endEffector, targetPosition, orientation=targetOrientation, threshold=1e-3, maxIter=3000, debug=debugLine, verbose=verbose, startJoint = "base_to_dummy")
 

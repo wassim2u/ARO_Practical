@@ -114,8 +114,8 @@ class Simulation_base:
             basePosition=robotConfigs["robotStartPos"],
             baseOrientation=robotConfigs["robotStartOrientation"],
             useFixedBase=robotFixedBase,
-            # flags         = (self.p.URDF_USE_SELF_COLLISION
-            #                       + self.p.URDF_USE_INERTIA_FROM_FILE),
+            flags         = (self.p.URDF_USE_SELF_COLLISION)
+                                #   + self.p.URDF_USE_INERTIA_FROM_FILE),
         )
 
         # loading robot PID configs
